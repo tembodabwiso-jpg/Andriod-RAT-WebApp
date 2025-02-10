@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>HUD | {% block title %} {% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
+    <link
+      href="../../../../../static/assets/css/vendor.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="../../../../../static/assets/css/app.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="../../../../../static/assets/plugins/jvectormap-next/jquery-jvectormap.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app" class="app">
+      {% include 'components/header.html' %} 
+
+      {% include 'components/sidebar.html' %}
+      <div id="content" class="app-content">
+        {% block content %} {% endblock %}
+      </div>
+
+      <a href="#" data-toggle="scroll-to-top" class="btn-scroll-top fade"
+        ><i class="fa fa-arrow-up"></i
+      ></a>
+    </div>
+    {% include 'components/scripts.html' %}
+  </body>
+</html>
