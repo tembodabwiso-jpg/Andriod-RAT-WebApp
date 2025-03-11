@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>HUD | Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="" />
+    <meta name="author" content="" />
+
+    <link
+      href="../../../../../static/assets/css/vendor.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="../../../../../static/assets/css/app.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css"
+    />
+  </head>
+  <body class="pace-top">
+    <!-- BEGIN #app -->
+    <div id="app" class="app app-full-height app-without-header">
+      <!-- BEGIN login -->
+      <div class="login">
+        <!-- BEGIN login-content -->
+        <div class="login-content">
+          <form action="{{ url_for('auth.login') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+            <h1 class="text-center">Sign In</h1>
+            <div class="text-white text-opacity-50 text-center mb-4">
+              For your protection, please verify your identity.
+            </div>
+            <div class="mb-3">
+              <label class="form-label"
+                >Email Address <span class="text-danger">*</span></label
+              >
+              <input
+                type="text"
+                name="email"
+                class="form-control form-control-lg bg-white bg-opacity-5"
+              />
+            </div>
+            <div class="mb-3">
+              <div class="d-flex">
+                <label class="form-label"
+                  >Password <span class="text-danger">*</span></label
+                >
+                <a
+                  href="#"
+                  class="ms-auto text-white text-decoration-none text-opacity-50"
+                  >Forgot password?</a
+                >
+              </div>
+              <input
+                type="password"
+                name="password"
+                id="password"
+                class="form-control form-control-lg bg-white bg-opacity-5"
+              />
+            </div>
+            <div class="mb-3">
+              <div class="form-check">
+                <input
+                  class="form-check-input"
+                  type="checkbox"
+                  onchange="showPassword()"
+                  id="customCheck1"
+                />
+                <label class="form-check-label" for="customCheck1"
+                  >Show password</label
+                >
+              </div>
+            </div>
+            <button
+              type="submit"
+              class="btn btn-outline-theme btn-lg d-block w-100 fw-500 mb-3"
+            >
+              Sign In
+            </button>
+            <div class="text-center text-white text-opacity-50">
+              Don't have an account yet?
+              <a href="page_register.html">Sign up</a>.
+            </div>
+          </form>
+        </div>
+        <!-- END login-content -->
+      </div>
+      <!-- END login -->
+
+      <!-- BEGIN btn-scroll-top -->
+      <a href="#" data-toggle="scroll-to-top" class="btn-scroll-top fade"
+        ><i class="fa fa-arrow-up"></i
+      ></a>
+      <!-- END btn-scroll-top -->
+    </div>
+    <!-- END #app -->
+
+    <script>
+      function showPassword() {
+        var x = document.getElementById("password");
+        if (x.type === "password") {
+          x.type = "text";
+        } else {
+          x.type = "password";
+        }
+      }
+    </script>
+
+    <!-- ================== BEGIN core-js ================== -->
+    <script src="../../../../../static/assets/js/vendor.min.js"></script>
+    <script src="../../../../../static/assets/js/app.min.js"></script>
+    <!-- ================== END core-js ================== -->
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+    {% if alert %}
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        toastr.options = {
+          closeButton: false,
+          debug: false,
+          newestOnTop: true,
+          progressBar: true,
+          positionClass: "toast-top-right",
+          preventDuplicates: false,
+          onclick: null,
+          showDuration: "300",
+          hideDuration: "1000",
+          timeOut: "5000",
+          extendedTimeOut: "1000",
+          showEasing: "swing",
+          hideEasing: "linear",
+          showMethod: "fadeIn",
+          hideMethod: "fadeOut",
+        };
+
+        toastr["{{ alert['status'] }}"](
+          "{{ alert['message'] }}",
+          "{{ alert['title'] }}"
+        );
+      });
+    </script>
+    {% endif %}
+  </body>
+</html>

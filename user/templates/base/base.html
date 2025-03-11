@@ -18,6 +18,7 @@
       href="../../../../../static/assets/plugins/jvectormap-next/jquery-jvectormap.css"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" />
   </head>
   <body>
     <div id="app" class="app">
@@ -33,5 +34,39 @@
       ></a>
     </div>
     {% include 'components/scripts.html' %}
+
+    
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+    {% if alert %}
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            toastr.options = {
+                closeButton: false,
+                debug: false,
+                newestOnTop: true,
+                progressBar: true,
+                positionClass: "toast-top-right",
+                preventDuplicates: false,
+                onclick: null,
+                showDuration: "300",
+                hideDuration: "1000",
+                timeOut: "5000",
+                extendedTimeOut: "1000",
+                showEasing: "swing",
+                hideEasing: "linear",
+                showMethod: "fadeIn",
+                hideMethod: "fadeOut",
+            };
+
+            toastr["{{ alert['status'] }}"](
+                "{{ alert['message'] }}",
+                "{{ alert['title'] }}"
+            );
+        });
+    </script>
+    {% endif %}
   </body>
+
 </html>
