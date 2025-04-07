@@ -9,7 +9,7 @@ auth = Blueprint('auth', __name__, url_prefix='/auth')
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
-    if 'user_id' in session:
+    if 'admin_id' in session:
         return redirect(url_for('dashboard.index'))
     
     alert = get_flashed_messages()
@@ -31,9 +31,9 @@ def login():
         user = User.query.filter_by(email=email).first()
 
         if user and check_password_hash(user.password, password):
-            session['user_id'] = user.id
-            session['user_email'] = user.email
-            session['user_name'] = user.fullname
+            session['admin_id'] = user.id
+            session['admin_email'] = user.email
+            session['admin_name'] = user.fullname
 
             alert = {
                 'status': 'success',
@@ -59,17 +59,18 @@ def auth_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if (
-            "user_email" not in session
-            or "user_id" not in session
-            or "user_name" not in session
-            or session["user_email"] == None
-            or session["user_id"] == None
-            or session["user_name"] == None
+            "admin_email" not in session
+            or "admin_id" not in session
+            or "admin_name" not in session
+            or session["admin_email"] == None
+            or session["admin_id"] == None
+            or session["admin_name"] == None
         ):
             return redirect(url_for("auth.login"))
         return f(*args, **kwargs)
 
     return decorated_function
+
 
 
 @auth.route('/logout')

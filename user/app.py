@@ -9,9 +9,11 @@ from flask import Flask, render_template, session, redirect, url_for
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from datetime import timedelta
-from user.routes import (auth, dashboard)
+from user.routes import (auth, dashboard, devices)
 import os
 from config.database import init_app, db
+from utils.filters import init_filters
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -27,7 +29,7 @@ app.permanent_session_lifetime = timedelta(
 csrf = CSRFProtect(app)
 
 init_app(app)
-
+init_filters(app)
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -46,15 +48,16 @@ def handle_csrf_error(e):
 
 @app.route('/')
 def index():
-    if 'admin_id' in session:
+    if 'user_id' in session:
         return redirect(url_for('dashboard.index'))
     return redirect(url_for('auth.login'))
 
 
 app.register_blueprint(auth.auth)
 app.register_blueprint(dashboard.dashboard)
+app.register_blueprint(devices.devices)
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    app.run(debug=True)
+    app.run(debug=True, host="0.0.0.0")

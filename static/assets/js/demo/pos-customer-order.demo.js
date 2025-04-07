@@ -7,10 +7,9 @@ Website: http://www.seantheme.com/hud/
 
 var handleFilter = function() {
 	"use strict";
-	
 	$(document).on('click', '.pos-menu [data-filter]', function(e) {
 		e.preventDefault();
-		
+		document.getElementById('pos-content-container').style.display = 'block';
 		var targetType = $(this).attr('data-filter');
 		
 		$(this).addClass('active');

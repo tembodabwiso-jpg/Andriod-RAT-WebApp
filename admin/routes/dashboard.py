@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, get_flashed_messages
-from routes.auth import auth_required
+from admin.routes.auth import auth_required
 
 dashboard = Blueprint('dashboard', __name__)
 

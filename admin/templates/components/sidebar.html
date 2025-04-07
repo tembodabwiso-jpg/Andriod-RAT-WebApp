@@ -7,7 +7,7 @@
       <div class="menu-header">Navigation</div>
       <div class="menu-item {% if request.path == '/dashboard' %}active{% endif %}">
         <a href="dashboard" class="menu-link">
-          <span class="menu-icon"><i class="bi bi-cpu"></i></span>
+          <span class="menu-icon"><i class="bi bi-speedometer"></i></span>
           <span class="menu-text">Dashboard</span>
         </a>
       </div>
@@ -18,7 +18,14 @@
           <span class="menu-text">Devices</span>
         </a>
       </div>
-      <div class="menu-item  {% if request.path == '/download-apk' %}active{% endif %}">
+      <div class="menu-item {% if request.path == url_for('users.index') %}active{% endif %}">
+        <a href="{{ url_for('users.index') }}" class="menu-link ">
+          <span class="menu-icon"><i class="bi bi-people"></i></span>
+          <span class="menu-text">Users</span>
+        </a>
+      </div>
+      
+      <div class="menu-item {% if request.path == '/categories' %}active{% endif %}">
         <a href="download-apk" class="menu-link">
           <span class="menu-icon"><i class="bi bi-cloud-download"></i></span>
           <span class="menu-text">Download APK</span>
@@ -51,23 +58,23 @@
         </div>
       </div> -->
       <div class="menu-header">Administration</div>
+      <div class="menu-item {% if request.path == '/administrators' %}active{% endif %}">
+        <a href="administrators" class="menu-link">
+          <span class="menu-icon"><i class="bi bi-person-check"></i></span>
+          <span class="menu-text">Administrators</span>
+        </a>
+      </div>
       <div class="menu-item {% if request.path == '/profile-and-settings' %}active{% endif %}">
         <a href="profile-and-settings" class="menu-link">
-          <span class="menu-icon"><i class="bi bi-people"></i></span>
+          <span class="menu-icon"><i class="bi bi-gear"></i></span>
           <span class="menu-text">Profile & Settings</span>
         </a>
       </div>
-      <!-- <div class="menu-item">
-        <a href="settings.html" class="menu-link">
-          <span class="menu-icon"><i class="bi bi-gear"></i></span>
-          <span class="menu-text">Settings</span>
-        </a>
-      </div> -->
     </div>
     <!-- END menu -->
     <div class="p-3 px-4 mt-auto">
       <a
-        href="../../documentation/index.html"
+        href="auth/logout"
         class="btn d-block btn-outline-theme"
       >
         <i class="fa fa-sign-out me-2 ms-n2 opacity-5"></i> Logout

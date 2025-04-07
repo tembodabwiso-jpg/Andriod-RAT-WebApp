@@ -1,0 +1,290 @@
+{% extends 'base/base.html' %} {% block title %} Users {% endblock %} {% block
+content %}
+
+<div class="d-flex align-items-center mb-md-3 mb-2">
+  <div class="flex-fill">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="#">FEATURES</a></li>
+      <li class="breadcrumb-item active">USERS</li>
+    </ul>
+
+    <h1 class="page-header mb-2">Users</h1>
+    <p>Here you can manage all your users</p>
+  </div>
+  <div class="ms-auto">
+    <button
+      class="btn btn-outline-theme"
+      data-bs-toggle="modal"
+      data-bs-target="#modalLg"
+    >
+      <i class="fa fa-plus-circle me-1"></i> Add User
+    </button>
+  </div>
+</div>
+
+<div class="card">
+  <div class="tab-content p-4">
+    <div class="tab-pane fade show active" id="allTab">
+      <!-- BEGIN table -->
+      <div class="table-responsive">
+        <table class="table table-hover text-nowrap">
+          <thead>
+            <tr>
+              <th class="pt-0 pb-2">Sl No.</th>
+              <th class="pt-0 pb-2">Full Name</th>
+              <th class="pt-0 pb-2">Email</th>
+              <th class="pt-0 pb-2">Status</th>
+              <th class="pt-0 pb-2">Joined On</th>
+              <th class="pt-0 pb-2">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for user in users %}
+            <tr>
+              <td class="align-middle align-content-center text-center">
+                {{ loop.index }}
+              </td>
+              <td>
+                <div class="d-flex align-items-center">
+                  <div
+                    class="w-50px h-50px bg-white bg-opacity-25 d-flex align-items-center justify-content-center rounded rounded-circle me-3"
+                  >
+                    <img
+                      alt=""
+                      class="mw-100 mh-100 rounded"
+                      src="https://api.dicebear.com/9.x/fun-emoji/svg?seed={{ user.fullname }}"
+                    />
+                  </div>
+                  <div class="">
+                    <a
+                      href="#"
+                      class="text-white text-opacity-75 text-decoration-none"
+                      >{{ user.fullname }}</a
+                    >
+                    <div class="fs-12px text-white text-opacity-50">
+                      Last updated: {{ user.updated_at | format_datetime }}
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="align-middle">{{ user.email }}</td>
+
+              <td class="py-1 align-middle">
+                <span
+                  class="badge border border-success text-success px-2 pt-5px pb-5px rounded fs-12px d-inline-flex align-items-center"
+                  ><i class="fa fa-circle fs-9px fa-fw me-5px"></i> Active</span
+                >
+              </td>
+              <td class="align-middle">
+                {{ user.created_at | format_datetime }}
+              </td>
+              <td class="py-1 align-middle">
+                <button
+                  onclick="updateRemoveModal('{{ user.fullname }}', '{{ user.email }}', '{{ user.id }}')"
+                  type="button"
+                  class="btn btn-outline-danger"
+                  data-bs-toggle="modal"
+                  data-bs-target="#modalCoverExample"
+                >
+                  <i class="fa fa-trash-can me-1"></i> Delete
+                </button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <!-- END table -->
+
+      <!-- <div class="d-md-flex align-items-center">
+        <div class="me-md-auto text-md-left text-center mb-2 mb-md-0">
+          Showing 1 to 10 of 57 entries
+        </div>
+        <ul class="pagination mb-0 justify-content-center">
+          <li class="page-item disabled"><a class="page-link">Previous</a></li>
+          <li class="page-item"><a class="page-link" href="#">1</a></li>
+          <li class="page-item active"><a class="page-link" href="#">2</a></li>
+          <li class="page-item"><a class="page-link" href="#">3</a></li>
+          <li class="page-item"><a class="page-link" href="#">4</a></li>
+          <li class="page-item"><a class="page-link" href="#">5</a></li>
+          <li class="page-item"><a class="page-link" href="#">6</a></li>
+          <li class="page-item"><a class="page-link" href="#">Next</a></li>
+        </ul>
+      </div> -->
+    </div>
+  </div>
+  <div class="card-arrow">
+    <div class="card-arrow-top-left"></div>
+    <div class="card-arrow-top-right"></div>
+    <div class="card-arrow-bottom-left"></div>
+    <div class="card-arrow-bottom-right"></div>
+  </div>
+</div>
+
+<div class="modal modal-cover fade" id="modalCoverExample">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Delete User!</h3>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <form
+        id="deleteUserForm"
+        action="{{ url_for('users.delete_user') }}"
+        method="POST"
+      >
+        <div class="modal-body">
+          <div class="d-flex align-items-center mb-4 border-bottom pb-3">
+            <img
+              id="remove-admin-avatar"
+              class="rounded-circle me-3"
+              src=""
+              alt="User Avatar"
+              style="width: 64px; height: 64px"
+            />
+            <div>
+              <h5 class="mb-1" id="remove-admin-name"></h5>
+              <p class="text-muted mb-0" id="remove-admin-email"></p>
+            </div>
+          </div>
+          <input type="hidden" id="remove-admin-id" name="user_id" />
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <p class="alert alert-danger">
+            <i class="fa fa-exclamation-triangle me-2"></i>
+            Warning: Deleting this user is a permanent action and cannot be
+            undone. All associated data will be removed. Proceed with caution.
+          </p>
+
+          <p class="mb-3">
+            You are about to delete this user permanently. This action cannot be
+            undone, and all related data will be lost. Are you sure you want to
+            proceed?
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            class="btn btn-outline-danger"
+            data-bs-dismiss="modal"
+          >
+            <i class="fa fa-trash-can me-1"></i>
+            Delete
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalLg">
+  <div class="modal-dialog modal-md">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Add New User</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <form action="{{ url_for('users.add_user') }}" method="POST">
+        <div class="modal-body">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <div class="mb-3">
+            <label class="form-label"
+              >Full Name <span class="text-danger">*</span></label
+            >
+            <input
+              type="text"
+              name="fullname"
+              class="form-control form-control-lg bg-white bg-opacity-5"
+            />
+          </div>
+          <div class="mb-3">
+            <label class="form-label"
+              >Email Address <span class="text-danger">*</span></label
+            >
+            <input
+              type="email"
+              name="email"
+              class="form-control form-control-lg bg-white bg-opacity-5"
+            />
+          </div>
+          <div class="mb-3">
+            <div class="d-flex">
+              <label class="form-label"
+                >Password <span class="text-danger">*</span></label
+              >
+            </div>
+            <input
+              type="password"
+              name="password"
+              id="password"
+              class="form-control form-control-lg bg-white bg-opacity-5"
+            />
+          </div>
+          <div class="">
+            <div class="form-check">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                onchange="showPassword()"
+                id="customCheck1"
+              />
+              <label class="form-check-label" for="customCheck1"
+                >Show password</label
+              >
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-outline-secondary"
+            data-bs-dismiss="modal"
+          >
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-outline-theme">
+            <i class="fa fa-plus me-1"></i>
+            Add User
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showPassword() {
+    var x = document.getElementById("password");
+    if (x.type === "password") {
+      x.type = "text";
+    } else {
+      x.type = "password";
+    }
+  }
+
+  function updateRemoveModal(fullname, email, id) {
+    // Update the modal content
+    document.getElementById("remove-admin-name").textContent = fullname;
+    document.getElementById("remove-admin-email").textContent = email;
+    document.getElementById("remove-admin-id").value = id;
+    document.getElementById(
+      "remove-admin-avatar"
+    ).src = `https://api.dicebear.com/9.x/fun-emoji/svg?seed=${fullname}`;
+  }
+</script>
+
+{% endblock %}

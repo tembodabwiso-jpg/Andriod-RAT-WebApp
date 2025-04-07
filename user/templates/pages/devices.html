@@ -1,99 +1,164 @@
-{% extends 'base/base.html' %}
+{% extends 'base/base.html' %} {% block title %} Dashboard {% endblock %} {%
+block content %}
 
-{% block title %} Dashboard {% endblock %}
+<div class="d-flex align-items-center mb-md-3 mb-2">
+  <div class="flex-fill">
+    <ul class="breadcrumb">
+      <li class="breadcrumb-item"><a href="#">FEATURES</a></li>
+      <li class="breadcrumb-item active">DEVICES</li>
+    </ul>
 
-{% block content %}
-<div class="row">
-    <div class="col-xl-4 col-md-6">
-        <div class="card p-4 h-100">
-            <div class="d-flex align-items-center mb-3">
-                <img src="../../../../../static/assets/img/user/user-8.jpg" class="rounded-circle me-3 w-50px"
-                    alt="Client 1">
-                <div>
-                    <h5 class="mb-0">OPPO Reno 12</h5>
-                    <small class="text-muted">Andriod Version: 12</small>
-                </div>
-            </div>
-            <div class="">
-                <div class="mb-3 gap-0">
-                    <p>Device Model: OPPO Reno 12 <br>
-                        Android Version: 12 <br>
-                        IMEI1: 123456789012345 <br>
-                        IMEI2: 123456789012345</p>
-                </div>
-                <div class="text-center mx-auto">
-                    <button type="button" class="btn btn-primary">Check Device <i
-                            class="bi bi-arrow-right"></i></button>
-                </div>
-            </div>
-            <div class="card-arrow">
-                <div class="card-arrow-top-left"></div>
-                <div class="card-arrow-top-right"></div>
-                <div class="card-arrow-bottom-left"></div>
-                <div class="card-arrow-bottom-right"></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-xl-4 col-md-6">
-        <div class="card p-4 h-100">
-            <div class="d-flex align-items-center mb-3">
-                <img src="../../../../../static/assets/img/user/user-8.jpg" class="rounded-circle me-3 w-50px"
-                    alt="Client 1">
-                <div>
-                    <h5 class="mb-0">OPPO Reno 12</h5>
-                    <small class="text-muted">Andriod Version: 12</small>
-                </div>
-            </div>
-            <div class="">
-                <div class="mb-3 gap-0">
-                    <p>Device Model: OPPO Reno 12 <br>
-                        Android Version: 12 <br>
-                        IMEI1: 123456789012345 <br>
-                        IMEI2: 123456789012345</p>
-                </div>
-                <div class="text-center mx-auto">
-                    <button type="button" class="btn btn-primary">Check Device <i
-                            class="bi bi-arrow-right"></i></button>
-                </div>
-            </div>
-            <div class="card-arrow">
-                <div class="card-arrow-top-left"></div>
-                <div class="card-arrow-top-right"></div>
-                <div class="card-arrow-bottom-left"></div>
-                <div class="card-arrow-bottom-right"></div>
-            </div>
-        </div>
-    </div>
-    <div class="col-xl-4 col-md-6">
-        <div class="card p-4 h-100">
-            <div class="d-flex align-items-center mb-3">
-                <img src="../../../../../static/assets/img/user/user-8.jpg" class="rounded-circle me-3 w-50px"
-                    alt="Client 1">
-                <div>
-                    <h5 class="mb-0">OPPO Reno 12</h5>
-                    <small class="text-muted">Andriod Version: 12</small>
-                </div>
-            </div>
-            <div class="">
-                <div class="mb-3 gap-0">
-                    <p>Device Model: OPPO Reno 12 <br>
-                        Android Version: 12 <br>
-                        IMEI1: 123456789012345 <br>
-                        IMEI2: 123456789012345</p>
-                </div>
-                <div class="text-center mx-auto">
-                    <button type="button" class="btn btn-primary">Check Device <i
-                            class="bi bi-arrow-right"></i></button>
-                </div>
-            </div>
-            <div class="card-arrow">
-                <div class="card-arrow-top-left"></div>
-                <div class="card-arrow-top-right"></div>
-                <div class="card-arrow-bottom-left"></div>
-                <div class="card-arrow-bottom-right"></div>
-            </div>
-        </div>
-    </div>
+    <h1 class="page-header mb-2">Devices</h1>
+    <p>Here you can manage your devices</p>
+  </div>
+  <div class="ms-auto">
+    <button class="btn btn-outline-theme">
+      <i class="fa fa-refresh me-1"></i> Refresh Devices
+    </button>
+  </div>
 </div>
+
+<div class="row">
+  {% for device in devices %}
+  <div class="col-xl-3 col-md-6">
+    <div class="card device-card h-100">
+      <div class="card-body p-4">
+        <!-- Device Header -->
+        <div class="device-header d-flex align-items-center mb-3">
+          <div class="device-icon-wrapper me-3">
+            <i class="bi bi-phone text-primary fs-2"></i>
+            <span class="status-indicator online"></span>
+          </div>
+          <div>
+            <h5 class="mb-1 device-name">OPPO Reno 12</h5>
+            <span class="text-muted small">
+              <i class="bi bi-clock me-1"></i>
+              Last seen: {{ device.last_seen | format_last_seen }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Device Info -->
+        <div class="device-info mb-4">
+          <div class="info-item d-flex align-items-center mb-2">
+            <i class="bi bi-globe2 text-muted me-2"></i>
+            <span class="text-muted">IP: </span>
+            <span class="ms-1">{{ device.device_ip }}</span>
+          </div>
+          <div class="info-item d-flex align-items-center">
+            <i class="bi bi-battery-half text-muted me-2"></i>
+            <div class="battery-wrapper w-100">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted">Battery</span>
+                <span class="battery-percentage">20%</span>
+              </div>
+              <div class="progress mt-1" style="height: 6px">
+                <div
+                  class="progress-bar bg-warning"
+                  role="progressbar"
+                  style="width: 20%"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="device-actions">
+          <button
+            type="button"
+            class="btn btn-primary w-100 d-flex align-items-center justify-content-center"
+            onclick="window.open('/device/{{ device.device_id }}')"
+          >
+            <span>View Details</span>
+            <i class="bi bi-arrow-right-circle ms-2"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Card Decorative Elements -->
+      <div class="card-arrow">
+        <div class="card-arrow-top-left"></div>
+        <div class="card-arrow-top-right"></div>
+        <div class="card-arrow-bottom-left"></div>
+        <div class="card-arrow-bottom-right"></div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<style>
+  /* Add these styles to your CSS */
+  .device-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: none;
+    background: rgba(255, 255, 255, 0);
+    backdrop-filter: blur(3px);
+  }
+
+  .device-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .device-icon-wrapper {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(var(--bs-primary-rgb), 0.1);
+    border-radius: 12px;
+  }
+
+  .status-indicator {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--bs-card-bg);
+  }
+
+  .status-indicator.online {
+    background-color: #00c853;
+  }
+
+  .status-indicator.offline {
+    background-color: #ff3d00;
+  }
+
+  .device-info {
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.151);
+    border-radius: 8px;
+  }
+
+  .info-item {
+    font-size: 0.9rem;
+  }
+
+  .battery-wrapper {
+    flex-grow: 1;
+  }
+
+  .progress {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+  }
+
+  .device-actions .btn {
+    border-radius: 8px;
+    padding: 0.6rem 1rem;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .device-actions .btn:hover {
+    transform: translateY(-2px);
+  }
+</style>
 {% endblock %}
