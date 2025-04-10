@@ -9,13 +9,13 @@ block content %}
     </ul>
 
     <h1 class="page-header mb-2">Devices</h1>
-    <p>Here you can manage your devices</p>
+    <p>Here you can manage and control your devices by clicking on them</p>
   </div>
-  <div class="ms-auto">
+  <!-- <div class="ms-auto">
     <button class="btn btn-outline-theme">
       <i class="fa fa-refresh me-1"></i> Refresh Devices
     </button>
-  </div>
+  </div> -->
 </div>
 
 <div class="row">
@@ -25,14 +25,17 @@ block content %}
       <div class="card-body p-4">
         <!-- Device Header -->
         <div class="device-header d-flex align-items-center mb-3">
-          <div class="device-icon-wrapper me-3">
+          <div class="device-icon-wrapper me-2">
             <i class="bi bi-phone text-primary fs-2"></i>
             <span class="status-indicator online"></span>
           </div>
           <div>
-            <h5 class="mb-1 device-name">OPPO Reno 12</h5>
+            <h5 class="mb-1 device-name text-break" >
+              {{ get_device_info(device.device_id, device.device_ip).model or
+              'Unknown' }}
+            </h5>
             <span class="text-muted small">
-              <i class="bi bi-clock me-1"></i>
+              <i class="bi bi-clock"></i>
               Last seen: {{ device.last_seen | format_last_seen }}
             </span>
           </div>
@@ -49,14 +52,19 @@ block content %}
             <i class="bi bi-battery-half text-muted me-2"></i>
             <div class="battery-wrapper w-100">
               <div class="d-flex justify-content-between align-items-center">
-                <span class="text-muted">Battery</span>
-                <span class="battery-percentage">20%</span>
+                <span class="text-muted">Battery:</span>
+                {% set battery = get_battery_info(device.device_id,
+                device.device_ip) %}
+                <span class="battery-percentage"
+                  >{{ battery.percentage }}% {% if battery.charging %}
+                  <i class="bi bi-battery-charging"></i> {% endif %}
+                </span>
               </div>
               <div class="progress mt-1" style="height: 6px">
                 <div
-                  class="progress-bar bg-warning"
+                  class="progress-bar {% if battery.percentage < 20 %} bg-danger {% elif battery.percentage < 50 %} bg-warning {% else %} bg-success {% endif %}"
                   role="progressbar"
-                  style="width: 20%"
+                  style="width: {{ battery.percentage }}%"
                 ></div>
               </div>
             </div>

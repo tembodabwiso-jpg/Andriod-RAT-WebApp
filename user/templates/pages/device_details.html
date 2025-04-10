@@ -7,296 +7,197 @@
     <meta name="description" content="" />
     <meta name="author" content="" />
 
-    <!-- ================== BEGIN core-css ================== -->
-    <link href="../../../../../static/assets/css/vendor.min.css" rel="stylesheet" />
-    <link href="../../../../../static/assets/css/app.min.css" rel="stylesheet" />
-    <style>
-      @keyframes slideIn {
-        from { opacity: 0; transform: translateY(-10px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
-      .content-section {
-        display: none;
-      }
-      .content-section.active {
-        display: block;
-        animation: slideIn 0.3s ease-out forwards;
-      }
-      .welcome-section {
-        text-align: center;
-        padding: 3rem;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 10px;
-        margin: 2rem;
-      }
-      .welcome-section i {
-        font-size: 4rem;
-        margin-bottom: 1.5rem;
-        color: var(--bs-theme);
-      }
-      .pos {
-        max-width: 1600px;
-        margin: 0 auto;
-        width: 100%;
-      }
-      .pos-container {
-        display: flex;
-        gap: 1.5rem;
-        padding: 1.5rem;
-        flex-wrap: wrap;
-      }
-      .pos-menu {
-        flex: 0 0 280px;
-        background: rgba(255, 255, 255, 0.02);
-        border-radius: 8px;
-        padding: 10px;
-        min-width: 0;
-      }
-      .pos-content {
-        flex: 1;
-        min-width: 0;
-      }
-      .command-card {
-        transition: all 0.2s ease;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(255, 255, 255, 0.03);
-        padding: 0.75rem 1rem;
-        margin-bottom: 0.5rem;
-        border-radius: 6px;
-        position: relative;
-        overflow: hidden;
-      }
-      .command-card:hover {
-        transform: translateX(4px);
-        background: rgba(255, 255, 255, 0.05);
-        border-color: rgba(var(--bs-theme-rgb), 0.3);
-      }
-      .command-card::after {
-        content: '';
-        position: absolute;
-        right: 0;
-        top: 0;
-        height: 100%;
-        width: 2px;
-        background: var(--bs-theme);
-        opacity: 0;
-        transition: opacity 0.2s ease;
-      }
-      .command-card:hover::after {
-        opacity: 0.5;
-      }
-      .nav-link.active .command-card {
-        background: rgba(var(--bs-theme-rgb), 0.1);
-        border-color: var(--bs-theme);
-      }
-      .nav-link.active .command-card::after {
-        opacity: 1;
-      }
-      .command-icon {
-        font-size: 1rem;
-        width: 2rem;
-        height: 2rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(var(--bs-theme-rgb), 0.1);
-        border-radius: 6px;
-        margin-right: 0.75rem;
-      }
-      .command-text {
-        font-size: 0.95rem;
-        font-weight: 500;
-        letter-spacing: 0.3px;
-      }
-      .nav-container {
-        width: 100%;
-      }
-      .nav-tabs {
-        border: none;
-      }
-      .nav-item {
-        margin-bottom: 0.5rem;
-      }
-      .nav-link {
-        padding: 0;
-        border: none;
-      }
-      .nav-link:hover {
-        background: transparent;
-      }
-      .logo {
-        padding: 1rem;
-        margin-bottom: 1rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-      }
-      .logo a {
-        color: var(--bs-theme);
-        font-weight: 500;
-      }
-      .logo i {
-        font-size: 1.5rem;
-        margin-right: 0.5rem;
-      }
-
-      /* Responsive Styles */
-      @media (max-width: 1400px) {
-        .pos {
-          max-width: 100%;
-        }
-        .pos-container {
-          padding: 1rem;
-        }
-      }
-
-      @media (max-width: 992px) {
-        .pos-menu {
-          flex: 0 0 240px;
-        }
-        .command-card {
-          padding: 0.6rem 0.8rem;
-        }
-        .command-icon {
-          width: 1.75rem;
-          height: 1.75rem;
-          font-size: 0.9rem;
-        }
-        .command-text {
-          font-size: 0.9rem;
-        }
-      }
-
-      @media (max-width: 768px) {
-        .pos-container {
-          flex-direction: column;
-          gap: 1rem;
-        }
-        .pos-menu {
-          flex: 0 0 auto;
-          width: 100%;
-        }
-        .pos-content {
-          width: 100%;
-        }
-        .command-card {
-          padding: 0.5rem 0.75rem;
-        }
-        .command-icon {
-          width: 1.5rem;
-          height: 1.5rem;
-          font-size: 0.85rem;
-        }
-        .command-text {
-          font-size: 0.85rem;
-        }
-      }
-
-      @media (max-width: 576px) {
-        .pos-container {
-          padding: 0.75rem;
-        }
-        .command-card {
-          padding: 0.4rem 0.6rem;
-          margin-bottom: 0.35rem;
-        }
-        .command-icon {
-          width: 1.25rem;
-          height: 1.25rem;
-          font-size: 0.8rem;
-          margin-right: 0.5rem;
-        }
-        .command-text {
-          font-size: 0.8rem;
-        }
-        .logo {
-          padding: 0.75rem;
-        }
-        .logo i {
-          font-size: 1.25rem;
-        }
-      }
-    </style>
-    <!-- ================== END core-css ================== -->
+    <link
+      href="../../../../../static/assets/css/vendor.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="../../../../../static/assets/css/app.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="../../../../../static/assets/css/device.details.css"
+    />
   </head>
   <body class="pace-top">
-    <!-- BEGIN #app -->
-    <div id="app" class="app app-content-full-height app-without-sidebar app-without-header">
-      <!-- BEGIN #content -->
+    <div id="app" class="app app-without-sidebar app-without-header">
       <div id="content" class="app-content p-1 ps-xl-4 pe-xl-4 pt-xl-3 pb-xl-3">
-        <!-- BEGIN pos -->
         <div class="pos card" id="pos">
           <div class="pos-container card-body">
-            <!-- BEGIN pos-menu -->
             <div class="pos-menu">
-              <!-- BEGIN logo -->
               <div class="logo">
-                <a href="/devices" class="d-flex align-items-center text-decoration-none">
+                <a
+                  href="/devices"
+                  class="d-flex align-items-center text-decoration-none"
+                >
                   <i class="bi bi-arrow-left"></i>
                   <span>Back to Devices</span>
                 </a>
               </div>
-              <!-- END logo -->
-              <!-- BEGIN nav-container -->
               <div class="nav-container">
-                <div data-scrollbar="true" data-height="100%" data-skip-mobile="true">
-                  <ul class="nav nav-tabs">
-                    <li class="nav-item">
-                      <a class="nav-link command-link" href="#" data-command="location">
-                        <div class="command-card">
-                          <div class="d-flex align-items-center">
-                            <div class="command-icon">
-                              <i class="fa fa-fw fa-map-marker"></i>
-                            </div>
-                            <span class="command-text">Location</span>
+                <ul class="nav nav-tabs">
+                  <li class="nav-item mobile-back">
+                    <a class="nav-link" href="/devices">
+                      <div class="command-card">
+                        <div class="d-flex align-items-center">
+                          <div class="command-icon">
+                            <i class="bi bi-arrow-left"></i>
                           </div>
+                          <span class="command-text">Back</span>
                         </div>
-                      </a>
-                    </li>
-                    <li class="nav-item">
-                      <a class="nav-link command-link" href="#" data-command="call-details">
-                        <div class="command-card">
-                          <div class="d-flex align-items-center">
-                            <div class="command-icon">
-                              <i class="fa fa-fw fa-phone"></i>
-                            </div>
-                            <span class="command-text">Call Details</span>
+                      </div>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a
+                      class="nav-link command-link"
+                      href="#"
+                      data-command="location"
+                    >
+                      <div class="command-card">
+                        <div class="d-flex align-items-center">
+                          <div class="command-icon">
+                            <i class="fa fa-location"></i>
                           </div>
+                          <span class="command-text">Location</span>
                         </div>
-                      </a>
-                    </li>
-                  </ul>
-                </div>
+                      </div>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a
+                      class="nav-link command-link"
+                      href="#"
+                      data-command="call-details"
+                    >
+                      <div class="command-card">
+                        <div class="d-flex align-items-center">
+                          <div class="command-icon">
+                            <i class="fa fa-phone"></i>
+                          </div>
+                          <span class="command-text">Call Details</span>
+                        </div>
+                      </div>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a
+                      class="nav-link command-link"
+                      href="#"
+                      data-command="messages"
+                    >
+                      <div class="command-card">
+                        <div class="d-flex align-items-center">
+                          <div class="command-icon">
+                            <i class="fa fa-message"></i>
+                          </div>
+                          <span class="command-text">Messages</span>
+                        </div>
+                      </div>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a
+                      class="nav-link command-link"
+                      href="#"
+                      data-command="apps"
+                    >
+                      <div class="command-card">
+                        <div class="d-flex align-items-center">
+                          <div class="command-icon">
+                            <i class="fa fa-mobile"></i>
+                          </div>
+                          <span class="command-text">Apps & Usage</span>
+                        </div>
+                      </div>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a
+                      class="nav-link command-link"
+                      href="#"
+                      data-command="photos"
+                    >
+                      <div class="command-card">
+                        <div class="d-flex align-items-center">
+                          <div class="command-icon">
+                            <i class="fa fa-image"></i>
+                          </div>
+                          <span class="command-text">Photos</span>
+                        </div>
+                      </div>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a
+                      class="nav-link command-link"
+                      href="#"
+                      data-command="contacts"
+                    >
+                      <div class="command-card">
+                        <div class="d-flex align-items-center">
+                          <div class="command-icon">
+                            <i class="fa fa-address-book"></i>
+                          </div>
+                          <span class="command-text">Contacts</span>
+                        </div>
+                      </div>
+                    </a>
+                  </li>
+                  <li class="nav-item">
+                    <a
+                      class="nav-link command-link"
+                      href="#"
+                      data-command="settings"
+                    >
+                      <div class="command-card">
+                        <div class="d-flex align-items-center">
+                          <div class="command-icon">
+                            <i class="fa fa-cog"></i>
+                          </div>
+                          <span class="command-text">Settings</span>
+                        </div>
+                      </div>
+                    </a>
+                  </li>
+                </ul>
               </div>
-              <!-- END nav-container -->
             </div>
-            <!-- END pos-menu -->
 
-            <!-- BEGIN pos-content -->
             <div class="pos-content">
-              <!-- Welcome Section -->
-              <div class="d-flex align-items-center justify-content-center h-100" id="welcome-section">
+              <div
+                class="d-flex align-items-center justify-content-center h-100"
+                id="welcome-section"
+              >
                 <div class="text-center p-4">
                   <div class="mb-4">
-                    <i class="bi bi-grid-1x2-fill" style="font-size: 4rem; color: var(--bs-theme)"></i>
+                    <i
+                      class="bi bi-grid-1x2-fill"
+                      style="font-size: 4rem; color: var(--bs-theme)"
+                    ></i>
                   </div>
                   <h3 class="mb-3">Select a Command</h3>
-                  <p class="text-muted mb-0">Please select a command from the left menu to view its details</p>
+                  <p class="text-muted mb-0">
+                    Please select a command from the left menu to view its
+                    details
+                  </p>
                 </div>
               </div>
 
-              <!-- Location Section -->
               <div class="content-section p-4" id="location-section">
                 <div class="d-flex align-items-center mb-4">
                   <div class="flex-fill">
                     <ul class="breadcrumb mb-2">
-                      <li class="breadcrumb-item"><a href="#" class="text-decoration-none">COMMANDS</a></li>
+                      <li class="breadcrumb-item">
+                        <a href="#" class="text-decoration-none">COMMANDS</a>
+                      </li>
                       <li class="breadcrumb-item active">LOCATION</li>
                     </ul>
                     <h1 class="page-header mb-2">Location</h1>
-                    <p class="text-muted mb-0">Here you can check your device location</p>
+                    <p class="text-muted mb-0">
+                      Here you can check your device location
+                    </p>
                   </div>
                   <div class="ms-4">
                     <button class="btn btn-outline-theme btn-lg">
@@ -306,7 +207,15 @@
                 </div>
                 <div class="card">
                   <div class="card-body">
-                    <!-- Location content will go here -->
+                    <iframe
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15590.198561445166!2d76.62971834999999!3d12.34607055!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3baf700d2479b3c1%3A0x5e6908ffddaa10cc!2sSri%20Jayadeva%20Institute%20of%20Cardiovascular%20Sciences%20and%20Research!5e0!3m2!1sen!2sin!4v1744285536594!5m2!1sen!2sin"
+                      width="100%"
+                      height="1200"
+                      style="border: 0"
+                      allowfullscreen=""
+                      loading="lazy"
+                      referrerpolicy="no-referrer-when-downgrade"
+                    ></iframe>
                   </div>
                   <div class="card-arrow">
                     <div class="card-arrow-top-left"></div>
@@ -317,16 +226,19 @@
                 </div>
               </div>
 
-              <!-- Call Details Section -->
               <div class="content-section p-4" id="call-details-section">
                 <div class="d-flex align-items-center mb-4">
                   <div class="flex-fill">
                     <ul class="breadcrumb mb-2">
-                      <li class="breadcrumb-item"><a href="#" class="text-decoration-none">COMMANDS</a></li>
+                      <li class="breadcrumb-item">
+                        <a href="#" class="text-decoration-none">COMMANDS</a>
+                      </li>
                       <li class="breadcrumb-item active">CALL DETAILS</li>
                     </ul>
                     <h1 class="page-header mb-2">Call Details</h1>
-                    <p class="text-muted mb-0">Here you can check your device call details</p>
+                    <p class="text-muted mb-0">
+                      Here you can check your device call details
+                    </p>
                   </div>
                   <div class="ms-4">
                     <button class="btn btn-outline-theme btn-lg">
@@ -335,9 +247,7 @@
                   </div>
                 </div>
                 <div class="card">
-                  <div class="card-body">
-                    <!-- Call details content will go here -->
-                  </div>
+                  <div class="card-body"></div>
                   <div class="card-arrow">
                     <div class="card-arrow-top-left"></div>
                     <div class="card-arrow-top-right"></div>
@@ -347,7 +257,6 @@
                 </div>
               </div>
             </div>
-            <!-- END pos-content -->
           </div>
           <div class="card-arrow">
             <div class="card-arrow-top-left"></div>
@@ -356,49 +265,42 @@
             <div class="card-arrow-bottom-right"></div>
           </div>
         </div>
-        <!-- END pos -->
       </div>
-      <!-- END #content -->
 
-      <!-- BEGIN btn-scroll-top -->
       <a href="#" data-toggle="scroll-to-top" class="btn-scroll-top fade">
         <i class="fa fa-arrow-up"></i>
       </a>
-      <!-- END btn-scroll-top -->
     </div>
-    <!-- END #app -->
 
-    <!-- ================== BEGIN core-js ================== -->
     <script src="../../../../../static/assets/js/vendor.min.js"></script>
     <script src="../../../../../static/assets/js/app.min.js"></script>
-    <!-- ================== END core-js ================== -->
 
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const commandLinks = document.querySelectorAll('.command-link');
-        const welcomeSection = document.getElementById('welcome-section');
-        
-        commandLinks.forEach(link => {
-          link.addEventListener('click', function(e) {
+      document.addEventListener("DOMContentLoaded", function () {
+        const commandLinks = document.querySelectorAll(".command-link");
+        const welcomeSection = document.getElementById("welcome-section");
+
+        commandLinks.forEach((link) => {
+          link.addEventListener("click", function (e) {
             e.preventDefault();
-            
+
             // Remove active class from all links and sections
-            commandLinks.forEach(l => l.classList.remove('active'));
-            document.querySelectorAll('.content-section').forEach(section => {
-              section.classList.remove('active');
+            commandLinks.forEach((l) => l.classList.remove("active"));
+            document.querySelectorAll(".content-section").forEach((section) => {
+              section.classList.remove("active");
             });
-            
+
             // Hide welcome section
-            welcomeSection.classList.add('d-none');
-            
+            welcomeSection.classList.add("d-none");
+
             // Add active class to clicked link
-            this.classList.add('active');
-            
+            this.classList.add("active");
+
             // Show corresponding section
-            const command = this.getAttribute('data-command');
-            const section = document.getElementById(command + '-section');
+            const command = this.getAttribute("data-command");
+            const section = document.getElementById(command + "-section");
             if (section) {
-              section.classList.add('active');
+              section.classList.add("active");
             }
           });
         });
