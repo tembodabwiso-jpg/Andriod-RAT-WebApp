@@ -9,14 +9,12 @@ from flask import Flask, render_template, session, redirect, url_for
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from datetime import timedelta
-from user.routes import (auth, dashboard, devices)
+from user.routes import auth, dashboard, devices
+from user.routes.commands import location, call_details, contacts
 import os
 from config.database import init_app, db
 from utils.filters import init_filters
-from datetime import datetime
-
-app = Flask(__name__)
-
+from utils.caching import init_cache
 
 load_dotenv()
 
@@ -24,11 +22,13 @@ app = Flask(__name__, static_folder="../static")
 app.secret_key = os.getenv("SECRET_KEY")
 app.config['WTF_CSRF_ENABLED'] = True  # Enable CSRF protection
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # No time limit for CSRF tokens
-app.permanent_session_lifetime = timedelta(
-    hours=12)  # Set session timeout to 12 hours
+app.config['CACHE_TYPE'] = 'SimpleCache'
+app.config['CACHE_DEFAULT_TIMEOUT'] = 600
+app.permanent_session_lifetime = timedelta(hours=12)  # Set session timeout to 12 hours
 csrf = CSRFProtect(app)
 
 init_app(app)
+init_cache(app)
 init_filters(app)
 
 @app.errorhandler(404)
@@ -57,6 +57,11 @@ app.register_blueprint(auth.auth)
 app.register_blueprint(dashboard.dashboard)
 app.register_blueprint(devices.devices)
 
+# Command blueprints
+app.register_blueprint(location.location_command)
+app.register_blueprint(call_details.call_details_command)
+app.register_blueprint(contacts.contacts_command)
+ 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

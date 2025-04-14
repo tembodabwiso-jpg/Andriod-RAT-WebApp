@@ -1,0 +1,100 @@
+<div class="nav-container">
+  <ul class="nav nav-tabs">
+    <li class="nav-item mobile-back">
+      <a class="nav-link" href="/devices">
+        <div class="command-card">
+          <div class="d-flex align-items-center">
+            <div class="command-icon">
+              <i class="bi bi-arrow-left"></i>
+            </div>
+            <span class="command-text">Back</span>
+          </div>
+        </div>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link command-link {% if request.path.endswith('location') %}active{% endif %}" href="location" data-command="location">
+        <div class="command-card">
+          <div class="d-flex align-items-center">
+            <div class="command-icon">
+              <i class="fa fa-location"></i>
+            </div>
+            <span class="command-text">Location</span>
+          </div>
+        </div>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link command-link {% if request.path.endswith('call-details') %}active{% endif %}" href="call-details" data-command="call-details">
+        <div class="command-card">
+          <div class="d-flex align-items-center">
+            <div class="command-icon">
+              <i class="fa fa-phone"></i>
+            </div>
+            <span class="command-text">Call Details</span>
+          </div>
+        </div>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link command-link {% if request.path.endswith('contacts') %}active{% endif %}" href="contacts" data-command="contacts">
+        <div class="command-card">
+          <div class="d-flex align-items-center">
+            <div class="command-icon">
+              <i class="fa fa-address-book"></i>
+            </div>
+            <span class="command-text">Contacts</span>
+          </div>
+        </div>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link command-link {% if request.path.endswith('messages') %}active{% endif %}" href="#" data-command="messages">
+        <div class="command-card">
+          <div class="d-flex align-items-center">
+            <div class="command-icon">
+              <i class="fa fa-message"></i>
+            </div>
+            <span class="command-text">Messages</span>
+          </div>
+        </div>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link command-link {% if request.path.endswith('apps') %}active{% endif %}" href="#" data-command="apps">
+        <div class="command-card">
+          <div class="d-flex align-items-center">
+            <div class="command-icon">
+              <i class="fa fa-mobile"></i>
+            </div>
+            <span class="command-text">Installed Apps</span>
+          </div>
+        </div>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link command-link" href="#" data-command="photos">
+        <div class="command-card">
+          <div class="d-flex align-items-center">
+            <div class="command-icon">
+              <i class="fa fa-image"></i>
+            </div>
+            <span class="command-text">Photos</span>
+          </div>
+        </div>
+      </a>
+    </li>
+    <li class="nav-item">
+      <a class="nav-link command-link" href="#" data-command="settings">
+        <div class="command-card">
+          <div class="d-flex align-items-center">
+            <div class="command-icon">
+              <i class="fa fa-cog"></i>
+            </div>
+            <span class="command-text">Settings</span>
+          </div>
+        </div>
+      </a>
+    </li>
+  </ul>
+</div>

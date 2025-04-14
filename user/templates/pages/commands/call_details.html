@@ -1,0 +1,212 @@
+{% extends 'base/commands.html' %} {% block extra_css %}
+<link
+  href="../../../../../static/assets/plugins/datatables.net-bs5/css/dataTables.bootstrap5.min.css"
+  rel="stylesheet"
+/>
+<link
+  href="../../../../../static/assets/plugins/datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css"
+  rel="stylesheet"
+/>
+<link
+  href="../../../../../static/assets/plugins/datatables.net-responsive-bs5/css/responsive.bootstrap5.min.css"
+  rel="stylesheet"
+/>
+<link
+  href="../../../../../static/assets/plugins/bootstrap-table/dist/bootstrap-table.min.css"
+  rel="stylesheet"
+/>
+{% endblock %} {% block content %}
+
+<div class="content-section active p-4" id="call-details-section">
+  <div class="d-flex align-items-center mb-4">
+    <div class="flex-fill">
+      <ul class="breadcrumb mb-2">
+        <li class="breadcrumb-item">
+          <a href="#" class="text-decoration-none">COMMANDS</a>
+        </li>
+        <li class="breadcrumb-item active">CALL DETAILS</li>
+      </ul>
+      <h1 class="page-header mb-2">Call Details</h1>
+      <p class="text-muted mb-0">Here you can check your device call details</p>
+    </div>
+    <div class="ms-4">
+      <button class="btn btn-outline-theme btn-lg" id="refreshBtn">
+        <i class="fa fa-refresh me-1"></i> Refresh
+      </button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <div class="row">
+        <div class="col-xl-4 col-lg-6 mb-3">
+          <div
+            class="h-100"
+            style="
+              background: rgba(255, 255, 255, 0.05);
+              border-radius: 12px;
+              padding: 1.5rem;
+            "
+          >
+            <div class="d-flex align-items-center mb-3">
+              <div class="me-3">
+                <i
+                  class="bi bi-telephone-outbound text-theme"
+                  style="font-size: 1.5rem"
+                ></i>
+              </div>
+              <h3 class="card-title mb-0">Outgoing Calls</h3>
+            </div>
+            <div class="mt-4">
+              <h3 class="mb-0 text-white display-6 fw-bold">
+                {{ call_logs|selectattr('call_type', 'equalto',
+                'OUTGOING')|list|length }}
+              </h3>
+              <p class="text-muted small mb-0">Total outgoing calls</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-4 col-lg-6 mb-3">
+          <div
+            class="h-100"
+            style="
+              background: rgba(255, 255, 255, 0.05);
+              border-radius: 12px;
+              padding: 1.5rem;
+            "
+          >
+            <div class="d-flex align-items-center mb-3">
+              <div class="me-3">
+                <i
+                  class="bi bi-telephone-inbound text-theme"
+                  style="font-size: 1.5rem"
+                ></i>
+              </div>
+              <h3 class="card-title mb-0">Incoming Calls</h3>
+            </div>
+            <div class="mt-4">
+              <h3 class="mb-0 text-white display-6 fw-bold">
+                {{ call_logs|selectattr('call_type', 'equalto',
+                'INCOMING')|list|length }}
+              </h3>
+              <p class="text-muted small mb-0">Total incoming calls</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-4 col-lg-6 mb-3">
+          <div
+            class="h-100"
+            style="
+              background: rgba(255, 255, 255, 0.05);
+              border-radius: 12px;
+              padding: 1.5rem;
+            "
+          >
+            <div class="d-flex align-items-center mb-3">
+              <div class="me-3">
+                <i
+                  class="bi bi-telephone-x text-theme"
+                  style="font-size: 1.5rem"
+                ></i>
+              </div>
+              <h3 class="card-title mb-0">Missed Calls</h3>
+            </div>
+            <div class="mt-4">
+              <h3 class="mb-0 text-white display-6 fw-bold">
+                {{ call_logs|selectattr('call_type', 'equalto',
+                'MISSED')|list|length }}
+              </h3>
+              <p class="text-muted small mb-0">Total missed calls</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- BEGIN #datatable -->
+      <div id="datatable" class="mb-1 mt-3">
+        <h4>Call Logs</h4>
+        <p>Here you can check your device call logs</p>
+        <div class="card">
+          <div class="card-body">
+            <table id="datatableDefault" class="table text-nowrap w-100">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Conatct Name</th>
+                  <th>Phone Number</th>
+                  <th>Call Type</th>
+                  <th>Duration</th>
+                  <th>Date & Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for call_log in call_logs %}
+                <tr>
+                  <td>{{ loop.index }}.</td>
+                  <td>
+                    {% if call_log.contact_name %} {{ call_log.contact_name }}
+                    {% else %} Unknown {% endif %}
+                  </td>
+                  <td>{{ call_log.phone_number }}</td>
+                  <td>{{ call_log.call_type }}</td>
+                  <td>{{ call_log.duration }} seconds</td>
+                  <td>{{ call_log.timestamp | format_datetime }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <div class="card-arrow">
+            <div class="card-arrow-top-left"></div>
+            <div class="card-arrow-top-right"></div>
+            <div class="card-arrow-bottom-left"></div>
+            <div class="card-arrow-bottom-right"></div>
+          </div>
+        </div>
+      </div>
+      <!-- END #datatable -->
+    </div>
+    <div class="card-arrow">
+      <div class="card-arrow-top-left"></div>
+      <div class="card-arrow-top-right"></div>
+      <div class="card-arrow-bottom-left"></div>
+      <div class="card-arrow-bottom-right"></div>
+    </div>
+  </div>
+</div>
+{% endblock content %} {% block extra_js %}
+<script src="../../../../../static/assets/plugins/highlight.js/highlight.min.js"></script>
+<script src="../../../../../static/assets/js/demo/highlightjs.demo.js"></script>
+<script src="../../../../../static/assets/plugins/datatables.net/js/jquery.dataTables.min.js"></script>
+<script src="../../../../../static/assets/plugins/datatables.net-bs5/js/dataTables.bootstrap5.min.js"></script>
+<script src="../../../../../static/assets/plugins/datatables.net-buttons/js/dataTables.buttons.min.js"></script>
+<script src="../../../../../static/assets/plugins/datatables.net-buttons/js/buttons.colVis.min.js"></script>
+<script src="../../../../../static/assets/plugins/datatables.net-buttons/js/buttons.flash.min.js"></script>
+<script src="../../../../../static/assets/plugins/datatables.net-buttons/js/buttons.html5.min.js"></script>
+<script src="../../../../../static/assets/plugins/datatables.net-buttons/js/buttons.print.min.js"></script>
+<script src="../../../../../static/assets/plugins/datatables.net-buttons-bs5/js/buttons.bootstrap5.min.js"></script>
+<script src="../../../../../static/assets/plugins/datatables.net-responsive/js/dataTables.responsive.min.js"></script>
+<script src="../../../../../static/assets/plugins/datatables.net-responsive-bs5/js/responsive.bootstrap5.min.js"></script>
+<script src="../../../../../static/assets/plugins/bootstrap-table/dist/bootstrap-table.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script>
+  var handleRenderTableData = function () {
+    var table = $("#datatableDefault").DataTable({
+      dom: "<'row mb-3'<'col-md-4 mb-3 mb-md-0'l><'col-md-8 text-right'<'d-flex justify-content-end'fB>>>t<'row align-items-center'<'mr-auto col-md-6 mb-3 mb-md-0 mt-n2 'i><'mb-0 col-md-6'p>>",
+      lengthMenu: [10, 20, 30, 40, 50],
+      responsive: true,
+      buttons: [
+        { extend: "print", className: "btn btn-outline-default btn-sm ms-2" },
+        { extend: "csv", className: "btn btn-outline-default btn-sm" },
+        {
+          extend: "pdf",
+          className: "btn btn-outline-default btn-sm",
+        },
+      ],
+    });
+  };
+
+  $(document).ready(function () {
+    handleRenderTableData();
+  });
+</script>
+{% endblock %}

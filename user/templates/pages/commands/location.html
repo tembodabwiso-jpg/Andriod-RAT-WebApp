@@ -1,0 +1,245 @@
+{% extends 'base/commands.html' %} {% block content %}
+<link
+  rel="stylesheet"
+  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
+<style></style>
+
+<div class="preloader-overlay" id="preloader">
+  <div class="preloader-container">
+    <div class="preloader"></div>
+    <div class="preloader-text">Updating Location...</div>
+  </div>
+</div>
+
+<div class="content-section active p-4" id="location-section">
+  <div class="d-flex align-items-center mb-4">
+    <div class="flex-fill">
+      <ul class="breadcrumb mb-2">
+        <li class="breadcrumb-item">
+          <a href="#" class="text-decoration-none">COMMANDS</a>
+        </li>
+        <li class="breadcrumb-item active">LOCATION</li>
+      </ul>
+      <h1 class="page-header mb-2">Location</h1>
+      <p class="text-muted mb-0">Here you can check your device location</p>
+    </div>
+    <div class="ms-4">
+      <form
+        action="{{ url_for('location_command.get_fresh_location', device_id=request.path.split('/')[2]) }}"
+        method="post"
+        id="refreshForm"
+      >
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <button
+          type="submit"
+          class="btn btn-outline-theme btn-lg"
+          id="refreshButton"
+        >
+          <i class="fa fa-refresh me-1"></i> Refresh
+        </button>
+      </form>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body">
+      <div class="row g-4 mb-4">
+        <!-- GPS Location Card -->
+        <div class="col-md-6">
+          <div
+            class="location-card h-100"
+            style="
+              background: rgba(255, 255, 255, 0.05);
+              border-radius: 12px;
+              padding: 1.5rem;
+            "
+          >
+            <div class="d-flex align-items-center mb-3">
+              <div class="location-icon me-3">
+                <i
+                  class="fa fa-satellite text-theme"
+                  style="font-size: 1.5rem"
+                ></i>
+              </div>
+              <h3 class="card-title mb-0">GPS Location</h3>
+            </div>
+            <div class="location-details">
+              <div class="d-flex align-items-center mb-3">
+                <i
+                  class="fa fa-location-dot text-muted me-3"
+                  style="width: 20px"
+                ></i>
+                <div class="d-flex flex-column">
+                  <span class="fw-medium"
+                    >{{ format_coordinates(location_gps.latitude,
+                    location_gps.longitude) }}</span
+                  >
+                  <small class="text-muted">{{ gps_place }}</small>
+                </div>
+              </div>
+              <div class="d-flex align-items-center mb-3">
+                <i
+                  class="fa fa-gauge-high text-muted me-3"
+                  style="width: 20px"
+                ></i>
+                <div class="d-flex flex-column">
+                  <span class="fw-medium"
+                    >Accuracy: {{ location_gps.accuracy }} meters</span
+                  >
+                  <small class="text-muted"
+                    >{{ get_location_precision(location_gps.accuracy, 'gps')
+                    }}</small
+                  >
+                </div>
+              </div>
+              <div class="d-flex align-items-center">
+                <i class="fa fa-clock text-muted me-3" style="width: 20px"></i>
+                <div class="d-flex flex-column">
+                  <span class="fw-medium"
+                    >{{ location_gps.timestamp | format_datetime }}</span
+                  >
+                  <small class="text-muted">Last Updated</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Network Location Card -->
+        <div class="col-md-6">
+          <div
+            class="location-card h-100"
+            style="
+              background: rgba(255, 255, 255, 0.05);
+              border-radius: 12px;
+              padding: 1.5rem;
+            "
+          >
+            <div class="d-flex align-items-center mb-3">
+              <div class="location-icon me-3">
+                <i class="fa fa-wifi text-theme" style="font-size: 1.5rem"></i>
+              </div>
+              <h3 class="card-title mb-0">Network Location</h3>
+            </div>
+            <div class="location-details">
+              <div class="d-flex align-items-center mb-3">
+                <i
+                  class="fa fa-location-dot text-muted me-3"
+                  style="width: 20px"
+                ></i>
+                <div class="d-flex flex-column">
+                  <span class="fw-medium"
+                    >{{ format_coordinates(location_network.latitude,
+                    location_network.longitude) }}</span
+                  >
+                  <small class="text-muted">{{ network_place }}</small>
+                </div>
+              </div>
+              <div class="d-flex align-items-center mb-3">
+                <i
+                  class="fa fa-gauge-high text-muted me-3"
+                  style="width: 20px"
+                ></i>
+                <div class="d-flex flex-column">
+                  <span class="fw-medium"
+                    >Accuracy: {{ location_network.accuracy }} meters</span
+                  >
+                  <small class="text-muted"
+                    >{{ get_location_precision(location_network.accuracy,
+                    'network')}}</small
+                  >
+                </div>
+              </div>
+              <div class="d-flex align-items-center">
+                <i class="fa fa-clock text-muted me-3" style="width: 20px"></i>
+                <div class="d-flex flex-column">
+                  <span class="fw-medium"
+                    >{{ location_network.timestamp | format_datetime }}</span
+                  >
+                  <small class="text-muted">Last Updated</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Heading -->
+      <div class="d-flex align-items-center mt-4 mb-2">
+        <div class="flex-fill">
+          <h3 class="card-title mb-0">GPS Map Location</h3>
+          <p>Here you see the gps location of your device on the map</p>
+        </div>
+      </div>
+      <div
+        id="map"
+        style="width: 100%; height: 600px"
+        data-latitude="{{ location_gps.latitude }}"
+        data-longitude="{{ location_gps.longitude }}"
+        data-place="{{ gps_place }}"
+      ></div>
+    </div>
+    <div class="card-arrow">
+      <div class="card-arrow-top-left"></div>
+      <div class="card-arrow-top-right"></div>
+      <div class="card-arrow-bottom-left"></div>
+      <div class="card-arrow-bottom-right"></div>
+    </div>
+  </div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  // Preloader handling
+  document
+    .getElementById("refreshForm")
+    .addEventListener("submit", function () {
+      const preloader = document.getElementById("preloader");
+      preloader.style.display = "flex";
+      // Trigger reflow
+      preloader.offsetHeight;
+      preloader.classList.add("show");
+    });
+
+  // Show preloader when page is loading
+  window.addEventListener("load", function () {
+    const preloader = document.getElementById("preloader");
+    preloader.classList.remove("show");
+    setTimeout(() => {
+      preloader.style.display = "none";
+    }, 300);
+  });
+
+  const lat = document.getElementById("map").getAttribute("data-latitude");
+  const lon = document.getElementById("map").getAttribute("data-longitude");
+  const place = document.getElementById("map").getAttribute("data-place");
+
+  const normal = L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+      attribution: "© OpenStreetMap contributors",
+    }
+  );
+
+  const satellite = L.tileLayer(
+    "https://server.arcgisonline.com/ArcGIS/rest/services/" +
+      "World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    {
+      attribution: "Tiles &copy; Esri",
+    }
+  );
+
+  const map = L.map("map", {
+    center: [lat, lon],
+    zoom: 14,
+    layers: [normal], // default layer
+  });
+
+  // Layer control
+  const baseMaps = {
+    "🗺️ Normal View": normal,
+    "🛰️ Satellite View": satellite,
+  };
+  L.control.layers(baseMaps).addTo(map);
+  const marker = L.marker([lat, lon]).addTo(map);
+  marker.bindPopup(`<strong>📍 ${place}</strong>`).openPopup();
+</script>
+{% endblock content %}
