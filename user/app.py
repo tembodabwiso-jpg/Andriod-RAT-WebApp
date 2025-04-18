@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from datetime import timedelta
 from user.routes import auth, dashboard, devices
-from user.routes.commands import location, call_details, contacts
+from user.routes.commands import location, call_details, contacts, device_info, messages, apps
 import os
 from config.database import init_app, db
 from utils.filters import init_filters
@@ -61,6 +61,9 @@ app.register_blueprint(devices.devices)
 app.register_blueprint(location.location_command)
 app.register_blueprint(call_details.call_details_command)
 app.register_blueprint(contacts.contacts_command)
+app.register_blueprint(device_info.device_info_command)
+app.register_blueprint(messages.messages_command)
+app.register_blueprint(apps.apps_command)
  
 if __name__ == '__main__':
     with app.app_context():

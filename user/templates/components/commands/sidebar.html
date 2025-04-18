@@ -20,6 +20,22 @@
         </li>
         <li class="nav-item">
           <a
+            class="nav-link command-link {% if request.path.endswith('device-info') %}active{% endif %}"
+            href="device-info"
+            data-command="device-info"
+          >
+            <div class="command-card">
+              <div class="d-flex align-items-center">
+                <div class="command-icon">
+                  <i class="fa fa-info"></i>
+                </div>
+                <span class="command-text">Device Info</span>
+              </div>
+            </div>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
             class="nav-link command-link {% if request.path.endswith('location') %}active{% endif %}"
             href="location"
             data-command="location"
@@ -69,7 +85,7 @@
         <li class="nav-item">
           <a
             class="nav-link command-link {% if request.path.endswith('messages') %}active{% endif %}"
-            href="#"
+            href="messages"
             data-command="messages"
           >
             <div class="command-card">
@@ -85,13 +101,13 @@
         <li class="nav-item">
           <a
             class="nav-link command-link {% if request.path.endswith('apps') %}active{% endif %}"
-            href="#"
+            href="apps"
             data-command="apps"
           >
             <div class="command-card">
               <div class="d-flex align-items-center">
                 <div class="command-icon">
-                  <i class="fa fa-mobile"></i>
+                  <i class="fa-brands fa-android"></i>
                 </div>
                 <span class="command-text">Installed Apps</span>
               </div>

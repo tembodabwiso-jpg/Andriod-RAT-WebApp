@@ -1,0 +1,284 @@
+{% extends 'base/commands.html' %} {% block content %}
+<div class="preloader-overlay" id="preloader">
+  <div class="preloader-container">
+    <div class="preloader"></div>
+    <div class="preloader-text">Loading Device Information...</div>
+  </div>
+</div>
+
+<div class="content-section active" id="device-info-section">
+  <div class="d-flex align-items-center mb-4">
+    <div class="flex-fill">
+      <ul class="breadcrumb mb-2">
+        <li class="breadcrumb-item">
+          <a href="#" class="text-decoration-none">COMMANDS</a>
+        </li>
+        <li class="breadcrumb-item active">DEVICE INFO</li>
+      </ul>
+      <h1 class="page-header mb-2">Device Information</h1>
+      <p class="text-muted mb-0">
+        Detailed information about the connected device
+      </p>
+    </div>
+    <div class="ms-4">
+      <button
+        type="button"
+        class="btn btn-outline-theme btn-lg"
+        id="refreshButton"
+      >
+        <i class="fa fa-refresh me-1"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    <!-- Device Details Card -->
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-4">
+            <div class="flex-fill">
+              <h3 class="card-title mb-0">
+                <i class="fa fa-mobile-screen-button me-2 text-theme"></i>
+                Device Details
+              </h3>
+            </div>
+            <div class="ms-auto">
+              <span class="badge bg-theme bg-opacity-10 text-theme"
+                >ID: {{ device_info.device_id }}</span
+              >
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-6">
+              <div class="info-item">
+                <label class="text-muted mb-1">Manufacturer</label>
+                <div class="fw-medium">{{ device_info.manufacturer }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="info-item">
+                <label class="text-muted mb-1">Model</label>
+                <div class="fw-medium">{{ device_info.model }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="info-item">
+                <label class="text-muted mb-1">IP Address</label>
+                <div class="fw-medium">{{ device_info.deviceIp }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="info-item">
+                <label class="text-muted mb-1">Last Updated</label>
+                <div class="fw-medium">
+                  {{ device_info.timestamp | format_datetime }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-arrow">
+          <div class="card-arrow-top-left"></div>
+          <div class="card-arrow-top-right"></div>
+          <div class="card-arrow-bottom-left"></div>
+          <div class="card-arrow-bottom-right"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Battery Status Card -->
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-4">
+            <div class="flex-fill">
+              <h3 class="card-title mb-0">
+                <i class="fa fa-battery-full me-2 text-theme"></i>
+                Battery Status
+              </h3>
+            </div>
+            <div class="ms-auto">
+              <span class="badge bg-success bg-opacity-10 text-success"
+                >{{ battery_info.percentage }}%</span
+              >
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-6">
+              <div class="info-item">
+                <label class="text-muted mb-1">Battery Level</label>
+                <div class="fw-medium">{{ battery_info.percentage }}%</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="info-item">
+                <label class="text-muted mb-1">Charging Status</label>
+                <div class="fw-medium">
+                  {% if battery_info.charging == False %}
+                  <span class="badge bg-danger bg-opacity-10 text-danger"
+                    >Not Charging</span
+                  >
+                  {% else %}
+                  <span class="badge bg-success bg-opacity-10 text-success"
+                    >Charging</span
+                  >
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="info-item">
+                <label class="text-muted mb-1">Last Updated</label>
+                <div class="fw-medium">
+                  {{ battery_info.timestamp | format_datetime }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-arrow">
+          <div class="card-arrow-top-left"></div>
+          <div class="card-arrow-top-right"></div>
+          <div class="card-arrow-bottom-left"></div>
+          <div class="card-arrow-bottom-right"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIM Information Card -->
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-4">
+            <div class="flex-fill">
+              <h3 class="card-title mb-0">
+                <i class="fa fa-sim-card me-2 text-theme"></i>
+                SIM Information
+              </h3>
+            </div>
+            <div class="ms-auto">
+              <span class="badge bg-theme bg-opacity-10 text-theme"
+                >{{ sim_info.simCount }} SIM</span
+              >
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-6">
+              <div class="info-item">
+                <label class="text-muted mb-1">SIM Count</label>
+                <div class="fw-medium">{{ sim_info.simCount }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="info-item">
+                <label class="text-muted mb-1">Network Operator</label>
+                <div class="fw-medium">{{ sim_info.operatorName }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="info-item">
+                <label class="text-muted mb-1">Last Updated</label>
+                <div class="fw-medium">
+                  {{ sim_info.timestamp | format_datetime }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-arrow">
+          <div class="card-arrow-top-left"></div>
+          <div class="card-arrow-top-right"></div>
+          <div class="card-arrow-bottom-left"></div>
+          <div class="card-arrow-bottom-right"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OS Information Card -->
+    <div class="col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-4">
+            <div class="flex-fill">
+              <h3 class="card-title mb-0">
+                <i class="fa fa-android me-2 text-theme"></i>
+                OS Information
+              </h3>
+            </div>
+            <div class="ms-auto">
+              <span class="badge bg-theme bg-opacity-10 text-theme"
+                >Android {{ os_info.androidVersion }}</span
+              >
+            </div>
+          </div>
+          <div class="row g-3">
+            <div class="col-6">
+              <div class="info-item">
+                <label class="text-muted mb-1">Android Version</label>
+                <div class="fw-medium">{{ os_info.androidVersion }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="info-item">
+                <label class="text-muted mb-1">SDK Version</label>
+                <div class="fw-medium">{{ os_info.sdkVersion }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="info-item">
+                <label class="text-muted mb-1">Device</label>
+                <div class="fw-medium">{{ os_info.device }}</div>
+              </div>
+            </div>
+            <div class="col-6">
+              <div class="info-item">
+                <label class="text-muted mb-1">Last Updated</label>
+                <div class="fw-medium">
+                  {{ os_info.timestamp | format_datetime }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-arrow">
+          <div class="card-arrow-top-left"></div>
+          <div class="card-arrow-top-right"></div>
+          <div class="card-arrow-bottom-left"></div>
+          <div class="card-arrow-bottom-right"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .info-item {
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+  }
+
+  .info-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: all 0.3s ease;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .badge {
+    padding: 0.5rem 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+</style>
+{% endblock content %}

@@ -1,0 +1,203 @@
+{% extends 'base/commands.html' %} {% block extra_css %}
+<link rel="stylesheet" href="../../../../../static/assets/css/messages.css" />
+{% endblock %} {% block content %}
+<div class="preloader-overlay" id="preloader">
+  <div class="preloader-container">
+    <div class="preloader"></div>
+    <div class="preloader-text">Loading Messages...</div>
+  </div>
+</div>
+
+<div class="content-section active" id="messages-section">
+  <div class="d-flex align-items-center mb-4">
+    <div class="flex-fill">
+      <ul class="breadcrumb mb-2">
+        <li class="breadcrumb-item">
+          <a href="#" class="text-decoration-none">COMMANDS</a>
+        </li>
+        <li class="breadcrumb-item active">MESSAGES</li>
+      </ul>
+      <h1 class="page-header mb-2">Messages</h1>
+      <p class="text-muted mb-0">View and manage device messages</p>
+    </div>
+    <div class="ms-4">
+      <button
+        type="button"
+        class="btn btn-outline-theme btn-lg"
+        id="refreshButton"
+      >
+        <i class="fa fa-refresh me-1"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body p-0">
+      <div class="messages-container">
+        <!-- Contacts List -->
+        <div class="contacts-sidebar">
+          <div class="contacts-header">
+            <h5 class="mb-0">All Chats</h5>
+          </div>
+          <div class="contacts-list">
+            {% set unique_contacts = {} %} {% for message in messages %} {% if
+            message.phone_number not in unique_contacts %} {% set _ =
+            unique_contacts.update({message.phone_number: message}) %}
+            <!-- Contact Item -->
+            <div
+              class="contact-item"
+              data-phone="{{ message.phone_number }}"
+              data-contact-name="{{ message.contact_name }}"
+            >
+              <div class="contact-avatar">
+                <div class="avatar-initial">{{ message.phone_number[:3] if message.contact_name is none else message.contact_name[:2].upper() }}</div>
+              </div>
+              <div class="contact-info">
+                <div class="contact-name">
+                  {% if message.contact_name %} {{ message.contact_name }} {%
+                  else %} Unknown {% endif %}
+                </div>
+                <div class="contact-last-msg">{{ message.phone_number }}</div>
+              </div>
+              <div class="contact-meta">
+                <div class="contact-time">
+                  {{ format_message_time(message.timestamp) }}
+                </div>
+              </div>
+            </div>
+            {% endif %} {% endfor %}
+          </div>
+        </div>
+
+        <!-- Messages Area -->
+        <div class="messages-content">
+          <!-- Welcome Message View -->
+          <div id="welcome-view" class="d-flex flex-column align-items-center justify-content-center h-100 welcome-container">
+            <div class="text-center p-4">
+              <div class="welcome-icon mb-4">
+                <i class="fa fa-comments fa-5x"></i>
+              </div>
+              <h3 class="welcome-title mb-3">Welcome to Messages</h3>
+              <p class="welcome-text mb-4">Select a chat from the left to start viewing messages</p>
+              <div class="welcome-features">
+                <div class="feature-item">
+                  <i class="fa fa-clock"></i>
+                  <span>View message history</span>
+                </div>
+                <div class="feature-item">
+                  <i class="fa fa-trash-alt"></i>
+                  <span>Manage conversations</span>
+                </div>
+                <div class="feature-item">
+                  <i class="fa fa-search"></i>
+                  <span>Search through messages</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat View (Initially Hidden) -->
+          <div id="chat-view" class="d-none">
+            <div class="messages-header">
+              <div class="d-flex align-items-center">
+                <div class="contact-avatar">
+                  <div class="avatar-initial" id="currentContactInitial"></div>
+                </div>
+                <div class="mt-1">
+                  <h5 class="mb-0" id="currentContactName"></h5>
+                  <small class="text-muted" id="messageCount"></small>
+                </div>
+              </div>
+              <div class="messages-actions">
+                <button
+                  class="btn btn-icon"
+                  data-bs-toggle="tooltip"
+                  title="Delete Chat"
+                >
+                  <i class="fa fa-trash-alt"></i>
+                </button>
+              </div>
+            </div>
+            <div class="messages-body" id="messagesContainer"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-arrow">
+      <div class="card-arrow-top-left"></div>
+      <div class="card-arrow-top-right"></div>
+      <div class="card-arrow-bottom-left"></div>
+      <div class="card-arrow-bottom-right"></div>
+    </div>
+  </div>
+</div>
+
+{% endblock content %} {% block extra_js %}
+
+<script type="text/javascript">
+  const allMessages = {{ messages_json|tojson|safe }};
+
+  document.addEventListener("DOMContentLoaded", function () {
+    var tooltipTriggerList = [].slice.call(
+      document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    );
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    document.querySelectorAll(".contact-item").forEach((item) => {
+      item.addEventListener("click", function () {
+        document
+          .querySelectorAll(".contact-item")
+          .forEach((i) => i.classList.remove("active"));
+        this.classList.add("active");
+        const phone = this.dataset.phone;
+        const name = this.dataset.contactName || phone;
+        updateMessagesView(phone, name);
+      });
+    });
+
+    function updateMessagesView(phone, name) {
+      // Hide welcome view and show chat view
+      document.getElementById("welcome-view").classList.add("d-none");
+      document.getElementById("chat-view").classList.remove("d-none");
+
+      document.getElementById("currentContactInitial").textContent = name !== "None" ? name.substring(0, 2).toUpperCase() : phone.substring(0, 3) ;
+      document.getElementById("currentContactName").textContent = name !== "None" ? name : "Unknown";
+
+      const contactMessages = allMessages.filter(
+        (msg) => msg.phone_number === phone
+      );
+      document.getElementById(
+        "messageCount"
+      ).textContent = `${contactMessages.length} messages`;
+
+      contactMessages.sort(
+        (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+      );
+
+      const messagesContainer = document.getElementById("messagesContainer");
+      messagesContainer.innerHTML = contactMessages
+        .map(
+          (message) => `
+        <div class="message-item ${
+          message.message_type === "SENT" ? "outgoing" : "incoming"
+        }"
+             data-message-id="${message.id}">
+          <div class="message-content">
+            <div class="message-text">${message.message_body}</div>
+            <div class="message-time">
+              <small class="text-muted">${message.timestamp}</small>
+            </div>
+          </div>
+        </div>
+      `
+        )
+        .join("");
+
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  });
+</script>
+
+{% endblock extra_js %}

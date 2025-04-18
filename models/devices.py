@@ -1,5 +1,6 @@
 from datetime import datetime
 from config.database import db
+import ast
 
 class Device(db.Model):
     __tablename__ = 'devices'
@@ -34,12 +35,16 @@ class DeviceInfo(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.now)
 
     def to_dict(self):
+        try:
+            parsed_data = ast.literal_eval(self.data)
+        except Exception:
+            parsed_data = {}
         return {
             'id': self.id,
             'device_id': self.device_id,
             'info_type': self.info_type,
-            'data': self.data,
-            'timestamp': self.timestamp.isoformat()
+            'timestamp': self.timestamp,
+            ** parsed_data
         }
 
 class Keystroke(db.Model):
