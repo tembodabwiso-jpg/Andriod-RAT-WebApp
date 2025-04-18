@@ -1,10 +1,9 @@
-{% extends 'base/commands.html' %} {% block content %}
+{% extends 'base/commands.html' %} {% block extra_css %}
 <link
   rel="stylesheet"
   href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
 />
-<style></style>
-
+{% endblock %} {% block content %}
 <div class="preloader-overlay" id="preloader">
   <div class="preloader-container">
     <div class="preloader"></div>
@@ -12,7 +11,7 @@
   </div>
 </div>
 
-<div class="content-section active p-4" id="location-section">
+<div class="content-section active" id="location-section">
   <div class="d-flex align-items-center mb-4">
     <div class="flex-fill">
       <ul class="breadcrumb mb-2">
@@ -186,6 +185,7 @@
     </div>
   </div>
 </div>
+{% endblock content %} {% block extra_js %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
   // Preloader handling
@@ -242,4 +242,4 @@
   const marker = L.marker([lat, lon]).addTo(map);
   marker.bindPopup(`<strong>📍 ${place}</strong>`).openPopup();
 </script>
-{% endblock content %}
+{% endblock extra_js %}

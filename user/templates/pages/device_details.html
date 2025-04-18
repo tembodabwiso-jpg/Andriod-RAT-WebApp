@@ -1,23 +1,21 @@
-{% extends 'base/commands.html' %} 
+{% extends 'base/commands.html' %} {% block content %}
 
-{% block content %}
-
-  <div
-    class="d-flex align-items-center justify-content-center h-100 content-section active"
-    id="loading-section"
-  >
-    <div class="text-center p-4">
-      <div class="mb-4">
-        <i
-          class="bi bi-grid-1x2-fill"
-          style="font-size: 4rem; color: var(--bs-theme)"
-        ></i>
-      </div>
-      <h3 class="mb-3">Select a Command</h3>
-      <p class="text-muted mb-0">
-        Please select a command from the left menu to view its details
-      </p>
+<div
+  class="d-flex align-items-center justify-content-center welcome-section active"
+  id="loading-section"
+>
+  <div class="text-center p-4">
+    <div class="mb-4">
+      <i
+        class="bi bi-grid-1x2-fill"
+        style="font-size: 4rem; color: var(--bs-theme)"
+      ></i>
     </div>
+    <h3 class="mb-3">Select a Command</h3>
+    <p class="text-muted mb-0">
+      Please select a command from the left menu to view its details
+    </p>
   </div>
+</div>
 
 {% endblock content %}
