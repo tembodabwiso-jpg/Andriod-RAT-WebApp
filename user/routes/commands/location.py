@@ -1,6 +1,7 @@
 from flask import Blueprint, flash, get_flashed_messages, render_template, redirect, url_for, current_app
 from ..auth import auth_required
 from models.devices import DeviceLocation, Device
+from apis.devices import getLocationInfo
 import requests
 from utils.caching import cache
 
@@ -19,13 +20,12 @@ def format_coordinates(lat, lon):
 
 @cache.memoize(1000)
 def get_place(lat, lon):
-
     url = 'https://nominatim.openstreetmap.org/reverse'
     params = {
         'format': 'json',
         'lat': lat,
         'lon': lon,
-        'zoom': 5,
+        'zoom': 6,
         'addressdetails': 1
     }
     headers = {'User-Agent': 'GeoApp/1.0'}
@@ -68,6 +68,10 @@ def device_location(device_id):
         DeviceLocation.timestamp.desc()).first()
     location_network = DeviceLocation.query.filter_by(device_id=device_id, provider='network').order_by(
         DeviceLocation.timestamp.desc()).first()
+    if location_gps is None or location_network is None:
+        device_ip = Device.query.filter_by(device_id=device_id).first().device_ip
+        res = getLocationInfo(device_id, device_ip)
+        print(res)
     gps_place = get_place(location_gps.latitude, location_gps.longitude)
     network_place = get_place(
         location_network.latitude, location_network.longitude)

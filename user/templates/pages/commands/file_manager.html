@@ -1,0 +1,1064 @@
+{% extends 'base/commands.html' %} 
+{% block extra_css %}
+<link href="../../../../../static/assets/plugins/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
+<style>
+  /* File Manager Styles */
+  .file-manager {
+    display: flex;
+    height: calc(100vh - 250px);
+    min-height: 500px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .sidebar {
+    width: 280px;
+    background: rgba(255, 255, 255, 0.02);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    overflow-y: auto;
+  }
+
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+  }
+
+  .storage-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background-color 0.15s;
+  }
+
+  .storage-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .storage-item.active {
+    background-color: rgba(var(--bs-theme-rgb), 0.15);
+    border-left: 3px solid var(--bs-theme);
+  }
+
+  .storage-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background-color: rgba(var(--bs-theme-rgb), 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin-right: 0.75rem;
+    color: var(--bs-theme);
+  }
+
+  .storage-details {
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .storage-name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .storage-path {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .path-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .path-segment {
+    display: inline-flex;
+    align-items: center;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .path-segment:hover {
+    color: var(--bs-theme);
+  }
+
+  .path-separator {
+    margin: 0 0.5rem;
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .file-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .file-table {
+    width: 100%;
+  }
+
+  .file-table th {
+    padding: 0.75rem;
+    font-weight: 500;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .file-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: middle;
+  }
+
+  .file-item {
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+
+  .file-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .file-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+  }
+
+  .folder-icon {
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #ffc107;
+  }
+
+  .file-icon-generic {
+    background-color: rgba(13, 110, 253, 0.15);
+    color: #0d6efd;
+  }
+
+  .file-icon-image {
+    background-color: rgba(25, 135, 84, 0.15);
+    color: #198754;
+  }
+
+  .file-icon-video {
+    background-color: rgba(220, 53, 69, 0.15);
+    color: #dc3545;
+  }
+
+  .file-icon-audio {
+    background-color: rgba(111, 66, 193, 0.15);
+    color: #6f42c1;
+  }
+
+  .file-icon-doc {
+    background-color: rgba(13, 110, 253, 0.15);
+    color: #0d6efd;
+  }
+
+  .file-icon-archive {
+    background-color: rgba(108, 117, 125, 0.15);
+    color: #6c757d;
+  }
+
+  .file-name-wrapper {
+    display: flex;
+    align-items: center;
+  }
+
+  .file-name {
+    margin-left: 0.75rem;
+    word-break: break-all;
+  }
+
+  .action-icon {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.5);
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+
+  .action-icon:hover {
+    color: rgba(255, 255, 255, 0.9);
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .upload-dropzone {
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.2s;
+  }
+
+  .upload-dropzone.dragover {
+    border-color: var(--bs-theme);
+    background-color: rgba(var(--bs-theme-rgb), 0.05);
+  }
+
+  .upload-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.3);
+  }
+
+  .upload-progress {
+    margin-top: 1rem;
+    display: none;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: rgba(255, 255, 255, 0.2);
+  }
+
+  .loading-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+  }
+
+  .spinner-container {
+    text-align: center;
+  }
+
+  .spinner-border {
+    margin-bottom: 1rem;
+  }
+
+  .modal-content {
+    background: #1e2126;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .modal-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* New folder modal */
+  .folder-name-input {
+    background-color: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+
+  .folder-name-input:focus {
+    background-color: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: white;
+    box-shadow: 0 0 0 0.25rem rgba(var(--bs-theme-rgb), 0.25);
+  }
+
+  /* Toast styling */
+  .toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 9999;
+  }
+
+  .toast {
+    background-color: #1e2126;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .toast-header {
+    background-color: transparent;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .file-manager {
+      flex-direction: column;
+      height: auto;
+    }
+
+    .sidebar {
+      width: 100%;
+      max-height: 200px;
+      border-right: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .content {
+      padding: 0.75rem;
+    }
+
+    .file-actions {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    
+    .file-actions .btn-group {
+      margin-bottom: 0.5rem;
+    }
+
+    .file-name {
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="preloader-overlay" id="preloader">
+  <div class="preloader-container">
+    <div class="preloader"></div>
+    <div class="preloader-text">Loading Files...</div>
+  </div>
+</div>
+
+<div class="content-section active" id="file-manager-section">
+  <div class="d-flex align-items-center mb-4">
+    <div class="flex-fill">
+      <ul class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a href="#" class="text-decoration-none">COMMANDS</a></li>
+        <li class="breadcrumb-item active">FILE MANAGER</li>
+      </ul>
+      <h1 class="page-header mb-2">File Manager</h1>
+      <p class="text-muted mb-0">Browse, upload, and download files from your device</p>
+    </div>
+    <div class="ms-4">
+      <button type="button" class="btn btn-outline-theme btn-lg" id="refreshButton">
+        <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- File Manager UI -->
+  <div class="file-manager">
+    <!-- Sidebar with storage locations -->
+    <div class="sidebar">
+      <h6 class="text-muted p-3 mb-0">STORAGE LOCATIONS</h6>
+      <div id="storage-locations">
+        {% for location in storage_locations %}
+        <div class="storage-item" data-path="{{ location.path }}" data-id="{{ location.id }}">
+          <div class="storage-icon">
+            <i class="bi bi-hdd-fill"></i>
+          </div>
+          <div class="storage-details">
+            <div class="storage-name">{{ location.name }}</div>
+            <div class="storage-path">{{ location.path }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Main content area -->
+    <div class="content">
+      <!-- Path navigation -->
+      <div class="path-header" id="path-navigation">
+        <div class="path-segment" data-path="/storage/emulated/0">
+          <i class="bi bi-hdd-fill me-1"></i>
+          <span>Internal Storage</span>
+        </div>
+      </div>
+
+      <!-- File actions -->
+      <div class="file-actions">
+        <div class="btn-group">
+          <button type="button" class="btn btn-sm btn-outline-theme" id="uploadButton">
+            <i class="bi bi-upload me-1"></i> Upload
+          </button>
+          <button type="button" class="btn btn-sm btn-outline-light" id="newFolderButton">
+            <i class="bi bi-folder-plus me-1"></i> New Folder
+          </button>
+        </div>
+        <div>
+          <div class="input-group input-group-sm">
+            <span class="input-group-text bg-transparent border-end-0 text-white">
+              <i class="bi bi-search"></i>
+            </span>
+            <input type="text" class="form-control bg-transparent border-start-0" placeholder="Search files..." id="searchInput">
+          </div>
+        </div>
+      </div>
+
+      <!-- Files table -->
+      <div id="files-container">
+        <div class="loading-state">
+          <div class="spinner-container">
+            <div class="spinner-border text-theme" role="status"></div>
+            <div>Loading files...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Upload File Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-upload me-2"></i>Upload Files
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="upload-dropzone" id="dropzone">
+          <input type="file" id="fileInput" style="display: none;" multiple>
+          <div class="upload-icon">
+            <i class="bi bi-cloud-arrow-up"></i>
+          </div>
+          <h5>Drag files here or click to browse</h5>
+          <p class="text-muted">The files will be uploaded to the current directory</p>
+          <button type="button" class="btn btn-outline-theme" id="browseButton">
+            Browse Files
+          </button>
+          <div class="upload-progress">
+            <div class="progress mb-2">
+              <div class="progress-bar bg-theme" id="uploadProgressBar" role="progressbar" style="width: 0%"></div>
+            </div>
+            <div id="uploadStatus">Uploading file...</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- New Folder Modal -->
+<div class="modal fade" id="newFolderModal" tabindex="-1">
+  <div class="modal-dialog modal-md">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-folder-plus me-2"></i>New Folder
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="folderNameInput" class="form-label">Folder name</label>
+          <input type="text" class="form-control folder-name-input" id="folderNameInput" placeholder="Enter folder name">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-outline-theme" id="createFolderButton">
+          Create
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-md">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">
+          <i class="bi bi-trash me-2 text-danger"></i>Delete
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete <strong id="deleteItemName">this item</strong>?</p>
+        <p class="text-danger">This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-light" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-danger" id="confirmDeleteButton">
+          Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Global variables
+    let currentPath = '/storage/emulated/0';
+    let deviceId = window.location.pathname.split('/')[2]; // Extract device ID from URL
+    
+    // DOM Elements
+    const preloader = document.getElementById('preloader');
+    const storageItems = document.querySelectorAll('.storage-item');
+    const refreshButton = document.getElementById('refreshButton');
+    const pathNavigation = document.getElementById('path-navigation');
+    const filesContainer = document.getElementById('files-container');
+    const uploadButton = document.getElementById('uploadButton');
+    const newFolderButton = document.getElementById('newFolderButton');
+    const searchInput = document.getElementById('searchInput');
+    
+    // Modals
+    const uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
+    const newFolderModal = new bootstrap.Modal(document.getElementById('newFolderModal'));
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    
+    // File upload elements
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const browseButton = document.getElementById('browseButton');
+    const uploadProgressBar = document.getElementById('uploadProgressBar');
+    const uploadStatus = document.getElementById('uploadStatus');
+    
+    // New folder elements
+    const folderNameInput = document.getElementById('folderNameInput');
+    const createFolderButton = document.getElementById('createFolderButton');
+    
+    // Delete confirmation elements
+    const deleteItemName = document.getElementById('deleteItemName');
+    const confirmDeleteButton = document.getElementById('confirmDeleteButton');
+    
+    // Initialize the file manager
+    init();
+    
+    function init() {
+      // Set up event listeners
+      setupEventListeners();
+      
+      // Load initial files
+      loadFiles(currentPath);
+      
+      // Hide preloader
+      setTimeout(() => {
+        preloader.style.display = 'none';
+      }, 500);
+    }
+    
+    function setupEventListeners() {
+      // Storage location click
+      storageItems.forEach(item => {
+        item.addEventListener('click', () => {
+          // Remove active class from all items
+          storageItems.forEach(i => i.classList.remove('active'));
+          // Add active class to clicked item
+          item.classList.add('active');
+          // Get path from data attribute
+          const path = item.getAttribute('data-path');
+          // Load files for this path
+          loadFiles(path);
+        });
+      });
+      
+      // Refresh button click
+      refreshButton.addEventListener('click', () => {
+        loadFiles(currentPath);
+      });
+      
+      // Upload button click
+      uploadButton.addEventListener('click', () => {
+        // Reset upload UI
+        resetUploadUI();
+        // Show upload modal
+        uploadModal.show();
+      });
+      
+      // New folder button click
+      newFolderButton.addEventListener('click', () => {
+        // Clear input
+        folderNameInput.value = '';
+        // Show new folder modal
+        newFolderModal.show();
+      });
+      
+      // File input change
+      fileInput.addEventListener('change', handleFileSelect);
+      
+      // Browse button click
+      browseButton.addEventListener('click', () => {
+        fileInput.click();
+      });
+      
+      // Drag and drop events
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      });
+      
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('dragover');
+      });
+      
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        
+        if (e.dataTransfer.files.length > 0) {
+          handleFiles(e.dataTransfer.files);
+        }
+      });
+      
+      // Create folder button click
+      createFolderButton.addEventListener('click', createFolder);
+      
+      // Search input
+      searchInput.addEventListener('input', handleSearch);
+    }
+    
+    function loadFiles(path) {
+      // Update current path
+      currentPath = path;
+      
+      // Show loading state
+      filesContainer.innerHTML = `
+        <div class="loading-state">
+          <div class="spinner-container">
+            <div class="spinner-border text-theme" role="status"></div>
+            <div>Loading files...</div>
+          </div>
+        </div>
+      `;
+      
+      // Update path navigation
+      updatePathNavigation(path);
+      
+      // Make API request to get files
+      fetch(`/device/${deviceId}/commands/file-manager/list?path=${encodeURIComponent(path)}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            displayFiles(data.files);
+          } else {
+            showEmptyState('Error loading files');
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching files:', error);
+          showEmptyState('Error loading files');
+        });
+    }
+    
+    function displayFiles(files) {
+      // If no files, show empty state
+      if (!files || files.length === 0) {
+        showEmptyState('No files found in this directory');
+        return;
+      }
+      
+      // Sort files (folders first, then alphabetically)
+      files.sort((a, b) => {
+        if (a.type === 'folder' && b.type !== 'folder') return -1;
+        if (a.type !== 'folder' && b.type === 'folder') return 1;
+        return a.name.localeCompare(b.name);
+      });
+      
+      // Create table HTML
+      let html = `
+        <table class="file-table">
+          <thead>
+            <tr>
+              <th style="width: 40%">Name</th>
+              <th style="width: 15%">Size</th>
+              <th style="width: 25%">Modified</th>
+              <th style="width: 20%">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      // Add files to table
+      files.forEach(file => {
+        const isFolder = file.type === 'folder';
+        const iconClass = getIconClass(file.icon);
+        
+        html += `
+          <tr class="file-item" data-path="${file.path}" data-type="${file.type}">
+            <td>
+              <div class="file-name-wrapper">
+                <div class="file-icon ${isFolder ? 'folder-icon' : iconClass}">
+                  <i class="bi ${file.icon}"></i>
+                </div>
+                <div class="file-name">${file.name}</div>
+              </div>
+            </td>
+            <td>${file.size}</td>
+            <td>${file.modified}</td>
+            <td>
+              <div class="d-flex">
+                ${isFolder ? '' : `
+                <span class="action-icon" title="Download" data-action="download">
+                  <i class="bi bi-download"></i>
+                </span>
+                `}
+                <span class="action-icon" title="Delete" data-action="delete">
+                  <i class="bi bi-trash"></i>
+                </span>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+      
+      html += `
+          </tbody>
+        </table>
+      `;
+      
+      // Add to container
+      filesContainer.innerHTML = html;
+      
+      // Add event listeners to file items
+      const fileItems = document.querySelectorAll('.file-item');
+      fileItems.forEach(item => {
+        item.addEventListener('click', handleFileClick);
+      });
+      
+      // Add event listeners to action buttons
+      const actionButtons = document.querySelectorAll('.action-icon');
+      actionButtons.forEach(button => {
+        button.addEventListener('click', handleActionClick);
+      });
+    }
+    
+    function getIconClass(icon) {
+      if (icon.includes('image')) return 'file-icon-image';
+      if (icon.includes('play') || icon.includes('video')) return 'file-icon-video';
+      if (icon.includes('music') || icon.includes('audio')) return 'file-icon-audio';
+      if (icon.includes('word') || icon.includes('pdf') || icon.includes('text')) return 'file-icon-doc';
+      if (icon.includes('zip')) return 'file-icon-archive';
+      return 'file-icon-generic';
+    }
+    
+    function updatePathNavigation(path) {
+      // Split path into segments
+      const segments = path.split('/').filter(segment => segment);
+      
+      // Build HTML for path navigation
+      let html = `
+        <div class="path-segment" data-path="/">
+          <i class="bi bi-hdd-fill me-1"></i>
+          <span>Root</span>
+        </div>
+      `;
+      
+      let currentPathBuildup = '';
+      
+      segments.forEach((segment, index) => {
+        currentPathBuildup += '/' + segment;
+        html += `
+          <div class="path-separator">/</div>
+          <div class="path-segment" data-path="${currentPathBuildup}">
+            <span>${segment}</span>
+          </div>
+        `;
+      });
+      
+      // Update path navigation
+      pathNavigation.innerHTML = html;
+      
+      // Add event listeners to path segments
+      const pathSegments = document.querySelectorAll('.path-segment');
+      pathSegments.forEach(segment => {
+        segment.addEventListener('click', () => {
+          const segmentPath = segment.getAttribute('data-path');
+          loadFiles(segmentPath === '/' ? '/storage/emulated/0' : segmentPath);
+        });
+      });
+    }
+    
+    function handleFileClick(event) {
+      // Ignore if clicking on an action button
+      if (event.target.closest('.action-icon')) {
+        return;
+      }
+      
+      const item = event.currentTarget;
+      const path = item.getAttribute('data-path');
+      const type = item.getAttribute('data-type');
+      
+      if (type === 'folder') {
+        // Navigate into folder
+        loadFiles(path);
+      } else {
+        // For files, show download option
+        window.open(`/device/${deviceId}/commands/file-manager/download?path=${encodeURIComponent(path)}`, '_blank');
+      }
+    }
+    
+    function handleActionClick(event) {
+      event.stopPropagation();
+      
+      const button = event.currentTarget;
+      const action = button.getAttribute('data-action');
+      const item = button.closest('.file-item');
+      const path = item.getAttribute('data-path');
+      const name = item.querySelector('.file-name').textContent;
+      
+      if (action === 'download') {
+        // Download file
+        window.open(`/device/${deviceId}/commands/file-manager/download?path=${encodeURIComponent(path)}`, '_blank');
+      } else if (action === 'delete') {
+        // Show delete confirmation
+        deleteItemName.textContent = name;
+        confirmDeleteButton.setAttribute('data-path', path);
+        deleteModal.show();
+        
+        // Set up delete confirmation button
+        confirmDeleteButton.onclick = () => {
+          deleteFile(path);
+        };
+      }
+    }
+    
+    function handleFileSelect(event) {
+      const files = event.target.files;
+      if (files.length > 0) {
+        handleFiles(files);
+      }
+    }
+    
+    function handleFiles(files) {
+      // Show progress UI
+      document.querySelector('.upload-progress').style.display = 'block';
+      
+      // Upload each file
+      for (let i = 0; i < files.length; i++) {
+        uploadFile(files[i]);
+      }
+    }
+    
+    function uploadFile(file) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('path', currentPath);
+      
+      // Update UI
+      uploadStatus.textContent = `Uploading ${file.name}...`;
+      uploadProgressBar.style.width = '0%';
+      
+      // Make API request
+      fetch(`/device/${deviceId}/commands/file-manager/upload`, {
+        method: 'POST',
+        body: formData
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Update progress
+            uploadProgressBar.style.width = '100%';
+            uploadStatus.textContent = 'Upload complete!';
+            
+            // Refresh files
+            loadFiles(currentPath);
+            
+            // Show success toast
+            showToast('success', 'Upload Success', `${file.name} uploaded successfully`);
+            
+            // Close modal after a short delay
+            setTimeout(() => {
+              uploadModal.hide();
+            }, 1500);
+          } else {
+            throw new Error(data.message || 'Upload failed');
+          }
+        })
+        .catch(error => {
+          console.error('Error uploading file:', error);
+          uploadStatus.textContent = `Upload failed: ${error.message}`;
+          showToast('error', 'Upload Failed', error.message);
+        });
+    }
+    
+    function resetUploadUI() {
+      fileInput.value = '';
+      document.querySelector('.upload-progress').style.display = 'none';
+      uploadProgressBar.style.width = '0%';
+      uploadStatus.textContent = '';
+    }
+    
+    function createFolder() {
+      const folderName = folderNameInput.value.trim();
+      
+      if (!folderName) {
+        showToast('error', 'Error', 'Please enter a folder name');
+        return;
+      }
+      
+      // Disable button and show loading state
+      createFolderButton.disabled = true;
+      createFolderButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Creating...';
+      
+      // Make API request
+      fetch(`/device/${deviceId}/commands/file-manager/create-folder`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          path: currentPath,
+          folderName: folderName
+        })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Close modal
+            newFolderModal.hide();
+            
+            // Refresh files
+            loadFiles(currentPath);
+            
+            // Show success toast
+            showToast('success', 'Folder Created', `Folder "${folderName}" created successfully`);
+          } else {
+            throw new Error(data.message || 'Failed to create folder');
+          }
+        })
+        .catch(error => {
+          console.error('Error creating folder:', error);
+          showToast('error', 'Error', error.message);
+        })
+        .finally(() => {
+          // Reset button state
+          createFolderButton.disabled = false;
+          createFolderButton.innerHTML = 'Create';
+        });
+    }
+    
+    function deleteFile(path) {
+      // Make API request
+      fetch(`/device/${deviceId}/commands/file-manager/delete`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          path: path
+        })
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            // Close modal
+            deleteModal.hide();
+            
+            // Refresh files
+            loadFiles(currentPath);
+            
+            // Show success toast
+            showToast('success', 'Deleted', data.message);
+          } else {
+            throw new Error(data.message || 'Failed to delete');
+          }
+        })
+        .catch(error => {
+          console.error('Error deleting file:', error);
+          showToast('error', 'Error', error.message);
+        });
+    }
+    
+    function handleSearch(event) {
+      const searchTerm = event.target.value.toLowerCase();
+      
+      // Get all file items
+      const fileItems = document.querySelectorAll('.file-item');
+      
+      // Filter based on search term
+      fileItems.forEach(item => {
+        const fileName = item.querySelector('.file-name').textContent.toLowerCase();
+        
+        if (fileName.includes(searchTerm)) {
+          item.style.display = '';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+    }
+    
+    function showEmptyState(message) {
+      filesContainer.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">
+            <i class="bi bi-folder"></i>
+          </div>
+          <h5>${message}</h5>
+          <p class="text-muted">This directory is empty</p>
+        </div>
+      `;
+    }
+    
+    function showToast(type, title, message) {
+      const toastContainer = document.querySelector('.toast-container');
+      
+      const toastId = 'toast-' + Date.now();
+      const toastHtml = `
+        <div class="toast" role="alert" aria-live="assertive" aria-atomic="true" id="${toastId}">
+          <div class="toast-header">
+            <i class="bi ${type === 'success' ? 'bi-check-circle-fill text-success' : 'bi-exclamation-circle-fill text-danger'} me-2"></i>
+            <strong class="me-auto">${title}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+          <div class="toast-body">
+            ${message}
+          </div>
+        </div>
+      `;
+      
+      toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+      
+      const toastElement = document.getElementById(toastId);
+      const toast = new bootstrap.Toast(toastElement, {
+        autohide: true,
+        delay: 3000
+      });
+      
+      toast.show();
+      
+      // Remove toast from DOM after it's hidden
+      toastElement.addEventListener('hidden.bs.toast', () => {
+        toastElement.remove();
+      });
+    }
+  });
+</script>
+{% endblock %} 

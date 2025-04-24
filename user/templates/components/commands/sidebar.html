@@ -115,13 +115,33 @@
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link command-link" href="#" data-command="photos">
+          <a
+            class="nav-link command-link {% if request.path.endswith('file-manager') %}active{% endif %}"
+            href="file-manager"
+            data-command="file-manager"
+          >
             <div class="command-card">
               <div class="d-flex align-items-center">
                 <div class="command-icon">
-                  <i class="fa fa-image"></i>
+                  <i class="fa fa-folder"></i>
                 </div>
-                <span class="command-text">Photos</span>
+                <span class="command-text">File Manager</span>
+              </div>
+            </div>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link command-link {% if request.path.endswith('keylogger') %}active{% endif %}"
+            href="keylogger"
+            data-command="keylogger"
+          >
+            <div class="command-card">
+              <div class="d-flex align-items-center">
+                <div class="command-icon">
+                  <i class="fa fa-keyboard"></i>
+                </div>
+                <span class="command-text">Keylogger</span>
               </div>
             </div>
           </a>

@@ -36,3 +36,20 @@ def getBatteryInfo(device_id, device_ip):
     except Exception as e:
         logger.error(f"Failed to get battery info for device {device_id}" + str(e))
         return None
+    
+def getLocationInfo(device_id, device_ip):
+    try:
+        url = f'http://{device_ip}:{PORT}/location-update'
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            return data
+        else:
+            logger.error(f"Failed to get location info for device {device_id}" + str(response.status_code))
+            return None
+    except requests.exceptions.ConnectTimeout as e:
+        logger.error(f"Failed to get location info due to connection timeout for device {device_id}")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to get location info for device {device_id}" + str(e))
+        return None
