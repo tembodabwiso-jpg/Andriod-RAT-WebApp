@@ -29,7 +29,6 @@ app.config["SESSION_TYPE"] = "filesystem"
 app.config["SESSION_COOKIE_HTTPONLY"] = True  # Secure cookies
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"  # Required for CSRF protection
 
-
 init_app(app)
 
 CORS(app, supports_credentials=True)

