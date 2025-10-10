@@ -1,6 +1,7 @@
 from flask import Blueprint, flash, get_flashed_messages, render_template, redirect, url_for, current_app, jsonify, request
 from ..auth import auth_required
-from models.devices import AppInfo
+from models.devices import AppInfo, Device
+from apis.devices import getFreshApps
 from datetime import datetime
 
 apps_command = Blueprint('apps_command', __name__)
@@ -69,3 +70,34 @@ def delete_app(device_id, app_id):
         return jsonify({'success': False, 'message': 'Application not found'}), 404
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@apps_command.route('/get-fresh-apps/<device_id>', methods=['POST'])
+@auth_required
+def get_fresh_apps(device_id):
+    device = Device.query.filter_by(device_id=device_id).first()
+    if device is None:
+        alert = {
+            'type': 'warning',
+            'message': 'Invalid Device ID, please try again!',
+            'title': 'Device Not Found'
+        }
+        flash(alert)
+        return redirect(url_for('apps_command.device_apps', device_id=device_id))
+
+    res = getFreshApps(device_id, device.device_ip)
+    if res:
+        alert = {
+            'type': 'success',
+            'message': 'Installed apps updated successfully!',
+            'title': 'Apps Updated'
+        }
+        flash(alert)
+    else:
+        alert = {
+            'type': 'warning',
+            'message': 'Failed to update installed apps, please try again!',
+            'title': 'Apps Update Failed'
+        }
+        flash(alert)
+    return redirect(url_for('apps_command.device_apps', device_id=device_id))

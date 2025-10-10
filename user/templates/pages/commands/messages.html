@@ -21,13 +21,12 @@
       <p class="text-muted mb-0">View and manage device messages</p>
     </div>
     <div class="ms-4">
-      <button
-        type="button"
-        class="btn btn-outline-theme btn-lg"
-        id="refreshButton"
-      >
-        <i class="fa fa-refresh me-1"></i> Refresh
-      </button>
+      <form action="{{ url_for('messages_command.get_messages', device_id=request.path.split('/')[2]) }}" method="post" id="refreshForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <button type="submit" class="btn btn-outline-theme btn-lg" id="refreshButton">
+          <i class="fa fa-refresh me-1"></i> Refresh
+        </button>
+      </form>
     </div>
   </div>
 
@@ -135,6 +134,20 @@
 {% endblock content %} {% block extra_js %}
 
 <script type="text/javascript">
+  // Preloader handling
+  document.getElementById("refreshForm")?.addEventListener("submit", function () {
+    const preloader = document.getElementById("preloader");
+    preloader.style.display = "flex";
+    preloader.offsetHeight;
+    preloader.classList.add("show");
+  });
+
+  window.addEventListener("load", function () {
+    const preloader = document.getElementById("preloader");
+    preloader.classList.remove("show");
+    setTimeout(() => (preloader.style.display = "none"), 300);
+  });
+
   const allMessages = {{ messages_json|tojson|safe }};
 
   document.addEventListener("DOMContentLoaded", function () {

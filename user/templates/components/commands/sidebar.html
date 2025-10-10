@@ -146,7 +146,39 @@
             </div>
           </a>
         </li>
+                <li class="nav-item">
+          <a
+            class="nav-link command-link {% if request.path.endswith('stream-camera') %}active{% endif %}"
+            href="stream-camera"
+            data-command="stream-camera"
+          >
+            <div class="command-card">
+              <div class="d-flex align-items-center">
+                <div class="command-icon">
+                  <i class="fa fa-video"></i>
+                </div>
+                <span class="command-text"> Stream Camera</span>
+              </div>
+            </div>
+          </a>
+        </li>
         <li class="nav-item">
+          <a
+            class="nav-link command-link {% if request.path.endswith('stream-vnc') %}active{% endif %}"
+            href="stream-vnc"
+            data-command="stream-vnc"
+          >
+            <div class="command-card">
+              <div class="d-flex align-items-center">
+                <div class="command-icon">
+                  <i class="fa fa-desktop"></i>
+                </div>
+                <span class="command-text"> VNC Stream</span>
+              </div>
+            </div>
+          </a>
+        </li>
+        <!-- <li class="nav-item">
           <a class="nav-link command-link" href="#" data-command="settings">
             <div class="command-card">
               <div class="d-flex align-items-center">
@@ -157,7 +189,7 @@
               </div>
             </div>
           </a>
-        </li>
+        </li> -->
       </ul>
     </div>
     <!-- END menu -->

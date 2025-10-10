@@ -1,0 +1,1007 @@
+{% extends 'base/commands.html' %}
+
+{% block extra_css %}
+<style>
+  .preloader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .preloader-overlay.show {
+    opacity: 1;
+  }
+
+  .preloader-container {
+    text-align: center;
+  }
+
+  .preloader {
+    border: 5px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top: 5px solid #00acac;
+    width: 50px;
+    height: 50px;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    margin-bottom: 15px;
+  }
+
+  .preloader-text {
+    color: white;
+    font-size: 16px;
+  }
+
+  @keyframes spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  .screen-container {
+    width: 100%;
+    background: #2d353c;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    position: relative;
+    border: 2px solid transparent;
+    transition: border-color 0.3s ease;
+  }
+
+  .screen-container.interactive {
+    border-color: #00acac;
+    box-shadow: 0 0 10px rgba(0, 172, 172, 0.3);
+  }
+
+  .screen {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    display: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .screen:hover {
+    opacity: 0.95;
+  }
+
+  .controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+  }
+
+  .status {
+    margin-bottom: 15px;
+    padding: 12px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: between;
+  }
+
+  .status-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .status-right {
+    margin-left: auto;
+    font-size: 0.9em;
+    color: #adb5bd;
+  }
+
+  .badge-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+  }
+
+  .dot-ok {
+    background: #00acac;
+  }
+
+  .dot-warn {
+    background: #f59c1a;
+  }
+
+  .dot-bad {
+    background: #ff5b57;
+  }
+
+  .gesture-controls {
+    margin-left: auto;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .gesture-controls .btn {
+    font-size: 0.85em;
+    padding: 0.4rem 0.6rem;
+    min-width: auto;
+  }
+
+  @media (max-width: 768px) {
+    .controls {
+      flex-direction: column;
+      gap: 15px;
+    }
+    
+    .gesture-controls {
+      margin-left: 0;
+      justify-content: center;
+    }
+    
+    .gesture-controls .btn {
+      flex: 1;
+      min-width: 80px;
+    }
+  }
+
+  .notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px;
+    border-radius: 5px;
+    color: white;
+    z-index: 9999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .notification.success {
+    background-color: #00acac;
+  }
+
+  .notification.error {
+    background-color: #ff5b57;
+  }
+
+  .notification.warning {
+    background-color: #f59c1a;
+  }
+
+  .notification.show {
+    opacity: 1;
+  }
+
+  .no-stream-placeholder {
+    background-color: #2d353c;
+    height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+    border-radius: 4px;
+  }
+
+  .no-stream-placeholder i {
+    font-size: 48px;
+    margin-bottom: 20px;
+    color: #6c757d;
+  }
+
+  .no-stream-placeholder p {
+    max-width: 80%;
+    color: #adb5bd;
+  }
+
+  .stream-stats {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  .tap-indicator {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #00acac;
+    border-radius: 50%;
+    background: rgba(0, 172, 172, 0.3);
+    pointer-events: none;
+    z-index: 15;
+    animation: tapPulse 0.6s ease-out forwards;
+  }
+
+  @keyframes tapPulse {
+    0% {
+      transform: scale(0.5);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(1.5);
+      opacity: 0;
+    }
+  }
+
+  .touch-hint {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 172, 172, 0.9);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-size: 0.8em;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  .screen-container.interactive .touch-hint {
+    opacity: 1;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="preloader-overlay" id="preloader">
+  <div class="preloader-container">
+    <div class="preloader"></div>
+    <div class="preloader-text" id="preloaderText">Processing...</div>
+  </div>
+</div>
+
+<div class="notification" id="notification"></div>
+
+<div class="content-section active">
+  <div class="d-flex align-items-center mb-4">
+    <div class="flex-fill">
+      <ul class="breadcrumb mb-2">
+        <li class="breadcrumb-item"><a href="#" class="text-decoration-none">COMMANDS</a></li>
+        <li class="breadcrumb-item active">VNC STREAM</li>
+      </ul>
+      <h1 class="page-header mb-2">VNC Stream</h1>
+      <p class="text-muted mb-0">Live device screen with remote controls</p>
+    </div>
+    <!-- CSRF Token (for JS fetch calls) -->
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <!-- Status Display -->
+      <div class="status">
+        <div class="status-left">
+          <span id="connDot" class="badge-dot dot-bad"></span>
+          <span id="connText">Disconnected</span>
+          <span id="streamInfo" class="text-muted ms-2"></span>
+        </div>
+        <div class="status-right">
+          <span class="text-muted">Port: {{ vnc_port }}</span>
+          <span id="lastFrameTime" class="text-muted ms-3"></span>
+        </div>
+      </div>
+
+      <!-- Control Panel -->
+      <div class="controls">
+        <button id="startBtn" class="btn btn-theme">
+          <i class="fa fa-play me-1"></i>Start Stream
+        </button>
+        <button id="stopBtn" class="btn btn-danger" disabled>
+          <i class="fa fa-stop me-1"></i>Stop Stream
+        </button>
+        <button id="refreshBtn" class="btn btn-outline-theme" disabled>
+          <i class="fa fa-refresh me-1"></i>Refresh
+        </button>
+        <!-- <button id="testConnBtn" class="btn btn-outline-warning">
+          <i class="fa fa-plug me-1"></i>Test Connection
+        </button> -->
+        
+        <!-- <div class="gesture-controls">
+          <button id="tapBtn" class="btn btn-outline-theme" disabled>
+            <i class="fa fa-hand-pointer me-1"></i>Tap Center
+          </button>
+          <button id="swipeUpBtn" class="btn btn-outline-theme" disabled>
+            <i class="fa fa-arrow-up me-1"></i>Swipe Up
+          </button>
+          <button id="swipeDownBtn" class="btn btn-outline-theme" disabled>
+            <i class="fa fa-arrow-down me-1"></i>Swipe Down
+          </button>
+          <button id="swipeLeftBtn" class="btn btn-outline-theme" disabled>
+            <i class="fa fa-arrow-left me-1"></i>Swipe Left
+          </button>
+          <button id="swipeRightBtn" class="btn btn-outline-theme" disabled>
+            <i class="fa fa-arrow-right me-1"></i>Swipe Right
+          </button>
+          <button id="backBtn" class="btn btn-outline-theme" disabled>
+            <i class="fa fa-arrow-left me-1"></i>Back
+          </button>
+          <button id="homeBtn" class="btn btn-outline-theme" disabled>
+            <i class="fa fa-home me-1"></i>Home
+          </button>
+          <button id="recentsBtn" class="btn btn-outline-theme" disabled>
+            <i class="fa fa-tasks me-1"></i>Recents
+          </button>
+        </div> -->
+      </div>
+
+      <!-- Screen Display -->
+      <div class="screen-container" id="creenContainer">
+        <img id="screen" class="screen mt-10px mb-10px" alt="Device Screen"  style="cursor: crosshair; width: 40%;" />
+        <div id="placeholder" class="no-stream-placeholder">
+          <i class="fa fa-desktop"></i>
+          <p>Waiting for VNC stream...</p>
+          <p class="small">Click "Start Stream" to begin screen mirroring</p>
+        </div>
+        <!-- Click overlay for touch interaction -->
+        <div id="touchOverlay" style="
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          cursor: crosshair;
+          z-index: 10;
+          display: none;
+        "></div>
+        <!-- Touch hint -->
+        <div class="touch-hint">Click anywhere to tap on device</div>
+      </div>
+
+      <!-- Stream Statistics -->
+      <div id="streamStats" class="stream-stats" style="display: none;">
+        <div class="row">
+          <div class="col-md-3">
+            <strong>Resolution:</strong> <span id="resolution">-</span>
+          </div>
+          <div class="col-md-3">
+            <strong>FPS:</strong> <span id="fps">0</span>
+          </div>
+          <div class="col-md-3">
+            <strong>Frame Count:</strong> <span id="frameCount">0</span>
+          </div>
+          <div class="col-md-3">
+            <strong>Uptime:</strong> <span id="uptime">-</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-arrow">
+      <div class="card-arrow-top-left"></div>
+      <div class="card-arrow-top-right"></div>
+      <div class="card-arrow-bottom-left"></div>
+      <div class="card-arrow-bottom-right"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+  // DOM elements
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const refreshBtn = document.getElementById('refreshBtn');
+  const testConnBtn = document.getElementById('testConnBtn');
+  const tapBtn = document.getElementById('tapBtn');
+  const swipeUpBtn = document.getElementById('swipeUpBtn');
+  const swipeDownBtn = document.getElementById('swipeDownBtn');
+  const swipeLeftBtn = document.getElementById('swipeLeftBtn');
+  const swipeRightBtn = document.getElementById('swipeRightBtn');
+  const backBtn = document.getElementById('backBtn');
+  const homeBtn = document.getElementById('homeBtn');
+  const recentsBtn = document.getElementById('recentsBtn');
+  const screen = document.getElementById('screen');
+  const placeholder = document.getElementById('placeholder');
+  const touchOverlay = document.getElementById('touchOverlay');
+  const screenContainer = document.getElementById('screenContainer');
+  const dot = document.getElementById('connDot');
+  const connText = document.getElementById('connText');
+  const streamInfo = document.getElementById('streamInfo');
+  const lastFrameTime = document.getElementById('lastFrameTime');
+  const streamStats = document.getElementById('streamStats');
+  const resolution = document.getElementById('resolution');
+  const fpsDisplay = document.getElementById('fps');
+  const frameCountDisplay = document.getElementById('frameCount');
+  const uptime = document.getElementById('uptime');
+  const preloader = document.getElementById('preloader');
+  const preloaderText = document.getElementById('preloaderText');
+  const notification = document.getElementById('notification');
+
+  // State variables
+  let vncSocket = null;
+  let frameCount = 0;
+  let startTime = null;
+  let fpsTimer = null;
+  let currentFps = 0;
+  let lastFpsUpdate = Date.now();
+  const VNC_PORT = parseInt("{{ vnc_port }}", 10);
+  let reconnectAttempts = 0;
+  const maxReconnectAttempts = 5;
+  let reconnectTimer = null;
+  const initialStreamActive = "{{ active_stream|default('false') }}" === "True";
+  let streamActive = initialStreamActive;
+  let deviceResolution = { width: 1080, height: 1920 }; // Default Android resolution
+
+  // Utility functions
+  function showPreloader(message) {
+    preloaderText.textContent = message || "Processing...";
+    preloader.style.display = "flex";
+    preloader.offsetHeight; // reflow
+    preloader.classList.add("show");
+  }
+
+  function hidePreloader() {
+    preloader.classList.remove("show");
+    setTimeout(() => {
+      preloader.style.display = "none";
+    }, 300);
+  }
+
+  function showNotification(message, type = "success") {
+    notification.textContent = message;
+    notification.className = `notification ${type}`;
+    notification.offsetHeight;
+    notification.classList.add("show");
+    setTimeout(() => notification.classList.remove("show"), 3000);
+  }
+
+  function setState(connected, message = '') {
+    dot.className = `badge-dot ${connected ? 'dot-ok' : 'dot-bad'}`;
+    connText.textContent = connected ? 'Connected' : 'Disconnected';
+    streamInfo.textContent = message;
+    
+    // Enable/disable controls based on connection state
+    const gestureButtons = [tapBtn, swipeUpBtn, swipeDownBtn, swipeLeftBtn, swipeRightBtn, backBtn, homeBtn, recentsBtn];
+    gestureButtons.forEach(btn => {
+      if (btn) btn.disabled = !connected;
+    });
+    
+    if (refreshBtn) refreshBtn.disabled = !connected;
+    if (stopBtn) stopBtn.disabled = !connected;
+    if (startBtn) startBtn.disabled = connected;
+    
+    // Show/hide touch overlay and update screen container
+    if (touchOverlay) {
+      touchOverlay.style.display = connected ? 'block' : 'none';
+    }
+    if (screenContainer) {
+      screenContainer.classList.toggle('interactive', connected);
+    }
+  }
+
+  function updateFrameStats() {
+    if (startTime) {
+      const uptimeSeconds = Math.floor((Date.now() - startTime) / 1000);
+      const hours = Math.floor(uptimeSeconds / 3600);
+      const minutes = Math.floor((uptimeSeconds % 3600) / 60);
+      const seconds = uptimeSeconds % 60;
+      uptime.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+    frameCountDisplay.textContent = frameCount;
+    fpsDisplay.textContent = currentFps;
+  }
+
+  function startFpsCounter() {
+    if (fpsTimer) return;
+    frameCount = 0;
+    lastFpsUpdate = Date.now();
+    fpsTimer = setInterval(() => {
+      const now = Date.now();
+      const elapsed = (now - lastFpsUpdate) / 1000;
+      if (elapsed >= 1) {
+        currentFps = Math.round(frameCount / elapsed);
+        frameCount = 0;
+        lastFpsUpdate = now;
+        updateFrameStats();
+      }
+    }, 600);
+  }
+
+  function stopFpsCounter() {
+    if (fpsTimer) {
+      clearInterval(fpsTimer);
+      fpsTimer = null;
+      currentFps = 0;
+      updateFrameStats();
+    }
+  }
+
+  // Socket.IO connection with enhanced error handling
+  function connectSocket() {
+    if (vncSocket && vncSocket.connected) {
+      console.log('[VNC] Already connected');
+      return;
+    }
+
+    console.log(`[VNC] Connecting to ws://${location.hostname}:${VNC_PORT}`);
+    
+    vncSocket = io(`${location.protocol}//${location.hostname}:${VNC_PORT}`, {
+      transports: ['websocket', 'polling'],
+      timeout: 20000,
+      reconnection: true,
+      reconnectionAttempts: maxReconnectAttempts,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      maxReconnectionAttempts: maxReconnectAttempts,
+      forceNew: true
+    });
+
+    vncSocket.on('connect', () => {
+      console.log('[VNC] Socket connected');
+      setState(true, 'Connected, waiting for stream...');
+      reconnectAttempts = 0;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+      showNotification('VNC connection established', 'success');
+    });
+
+    vncSocket.on('disconnect', (reason) => {
+      console.log('[VNC] Socket disconnected:', reason);
+      setState(false, `Disconnected: ${reason}`);
+      screen.style.display = 'none';
+      placeholder.style.display = 'block';
+      streamStats.style.display = 'none';
+      stopFpsCounter();
+      startTime = null;
+    });
+
+    vncSocket.on('connect_error', (error) => {
+      console.error('[VNC] Connection error:', error);
+      setState(false, 'Connection failed');
+      reconnectAttempts++;
+      
+      if (reconnectAttempts >= maxReconnectAttempts) {
+        showNotification(`Failed to connect to VNC server after ${maxReconnectAttempts} attempts`, 'error');
+      } else {
+        showNotification(`Connection attempt ${reconnectAttempts}/${maxReconnectAttempts} failed`, 'warning');
+      }
+    });
+
+    vncSocket.on('reconnect_attempt', (attemptNumber) => {
+      console.log(`[VNC] Reconnect attempt ${attemptNumber}`);
+      setState(false, `Reconnecting... (${attemptNumber}/${maxReconnectAttempts})`);
+    });
+
+    vncSocket.on('reconnect_failed', () => {
+      console.error('[VNC] Reconnection failed');
+      setState(false, 'Reconnection failed');
+      showNotification('Failed to reconnect to VNC server', 'error');
+    });
+
+    // Handle screen updates
+    vncSocket.on('screen_update', (data) => {
+      handleScreenUpdate(data);
+    });
+
+    // Handle acknowledgments
+    vncSocket.on('start_stream_ack', (data) => {
+      console.log('[VNC] Start stream acknowledged:', data);
+      showNotification('Stream started successfully', 'success');
+      setState(true, 'Stream active, waiting for frames...');
+      startTime = Date.now();
+      startFpsCounter();
+      streamStats.style.display = 'block';
+    });
+
+    vncSocket.on('stop_stream_ack', (data) => {
+      console.log('[VNC] Stop stream acknowledged:', data);
+      showNotification('Stream stopped', 'success');
+      setState(true, 'Connected, stream stopped');
+      screen.style.display = 'none';
+      placeholder.style.display = 'block';
+      streamStats.style.display = 'none';
+      stopFpsCounter();
+      startTime = null;
+    });
+
+    // Handle gesture acknowledgments
+    vncSocket.on('gesture_response', (data) => {
+      console.log('[VNC] Received gesture response:', data);
+      showNotification(`Gesture acknowledged: ${data.data?.type || 'unknown'}`, 'success');
+    });
+
+    vncSocket.on('tap_response', (data) => {
+      console.log('[VNC] Received tap response:', data);
+      if (data.data) {
+        showNotification(`Tap acknowledged at (${data.data.x}, ${data.data.y})`, 'success');
+      }
+    });
+
+    vncSocket.on('touch_move_response', (data) => {
+      console.log('[VNC] Received touch move response:', data);
+      showNotification('Swipe gesture acknowledged', 'success');
+    });
+
+    vncSocket.on('test_connection_response', (data) => {
+      console.log('[VNC] Test connection response:', data);
+      showNotification(`Test response: ${data.message}`, 'success');
+    });
+  }
+
+  function handleScreenUpdate(data) {
+    if (!data || !data.image) {
+      console.warn('[VNC] Received screen update without image data');
+      return;
+    }
+
+    try {
+      screen.src = `data:image/jpeg;base64,${data.image}`;
+      screen.style.display = 'block';
+      placeholder.style.display = 'none';
+      touchOverlay.style.display = 'block';
+      
+      // Update frame statistics
+      frameCount++;
+      lastFrameTime.textContent = `Frame: ${new Date().toLocaleTimeString()}`;
+      
+      // Update resolution if available
+      if (data.width && data.height) {
+        deviceResolution.width = data.width;
+        deviceResolution.height = data.height;
+        resolution.textContent = `${data.width}x${data.height}`;
+      }
+      
+      setState(true, `Receiving (${currentFps ? currentFps + ' fps' : 'active'})`);
+    } catch (error) {
+      console.error('[VNC] Error handling screen update:', error);
+    }
+  }
+
+  // Touch/click handling for screen interaction
+  function handleScreenClick(event) {
+    if (!vncSocket || !vncSocket.connected) {
+      showNotification('Not connected to VNC server', 'warning');
+      return;
+    }
+
+    const rect = screen.getBoundingClientRect();
+    const scaleX = deviceResolution.width / rect.width;
+    const scaleY = deviceResolution.height / rect.height;
+    
+    const x = Math.round((event.clientX - rect.left) * scaleX);
+    const y = Math.round((event.clientY - rect.top) * scaleY);
+    
+    console.log(`[VNC] Screen click at display (${event.clientX - rect.left}, ${event.clientY - rect.top}) -> device (${x}, ${y})`);
+    
+    // Show visual tap indicator
+    showTapIndicator(event.clientX - rect.left + rect.left, event.clientY - rect.top + rect.top);
+    
+    vncSocket.emit('perform_tap', { x: x, y: y });
+    showNotification(`Tapped at (${x}, ${y})`, 'success');
+  }
+
+  // Show visual tap indicator
+  function showTapIndicator(clientX, clientY) {
+    const indicator = document.createElement('div');
+    indicator.className = 'tap-indicator';
+    indicator.style.left = (clientX - 10) + 'px';
+    indicator.style.top = (clientY - 10) + 'px';
+    document.body.appendChild(indicator);
+    
+    setTimeout(() => {
+      if (indicator.parentNode) {
+        indicator.parentNode.removeChild(indicator);
+      }
+    }, 600);
+  }
+
+  // Helper function to emit events
+  function emit(event, data) {
+    console.log('[VNC] Attempting to emit:', event, data);
+    if (vncSocket && vncSocket.connected) {
+      console.log('[VNC] Socket is connected, emitting...');
+      vncSocket.emit(event, data);
+      return true;
+    } else {
+      console.log('[VNC] Socket not connected. Socket:', vncSocket, 'Connected:', vncSocket ? vncSocket.connected : 'null');
+      showNotification('Not connected to VNC server', 'warning');
+      return false;
+    }
+  }
+
+  // Simplified gesture functions
+  function tap() {
+    console.log('[VNC] Tap function called');
+    if (emit('perform_tap', {x: 540, y: 960})) {
+      showNotification('Tap gesture sent', 'success');
+    }
+  }
+
+  function swipeUp() {
+    console.log('[VNC] SwipeUp function called');
+    if (emit('perform_touch_move', {sx: 540, sy: 1500, ex: 540, ey: 500})) {
+      showNotification('Swipe up gesture sent', 'success');
+    }
+  }
+
+  function swipeDown() {
+    console.log('[VNC] SwipeDown function called');
+    if (emit('perform_touch_move', {sx: 540, sy: 500, ex: 540, ey: 1500})) {
+      showNotification('Swipe down gesture sent', 'success');
+    }
+  }
+
+  function swipeLeft() {
+    console.log('[VNC] SwipeLeft function called');
+    if (emit('perform_touch_move', {sx: 800, sy: 960, ex: 300, ey: 960})) {
+      showNotification('Swipe left gesture sent', 'success');
+    }
+  }
+
+  function swipeRight() {
+    console.log('[VNC] SwipeRight function called');
+    if (emit('perform_touch_move', {sx: 300, sy: 960, ex: 800, ey: 960})) {
+      showNotification('Swipe right gesture sent', 'success');
+    }
+  }
+
+  function back() {
+    console.log('[VNC] Back function called');
+    if (emit('perform_gesture', {type: 'back'})) {
+      showNotification('Back button pressed', 'success');
+    }
+  }
+
+  function home() {
+    console.log('[VNC] Home function called');
+    if (emit('perform_gesture', {type: 'home'})) {
+      showNotification('Home button pressed', 'success');
+    }
+  }
+
+  function recents() {
+    console.log('[VNC] Recents function called');
+    if (emit('perform_gesture', {type: 'recent'})) {
+      showNotification('Recent apps button pressed', 'success');
+    }
+  }
+
+  // Add click event listener to screen
+  if (screen) {
+    screen.addEventListener('click', handleScreenClick);
+  }
+  
+  if (touchOverlay) {
+    touchOverlay.addEventListener('click', handleScreenClick);
+  }
+
+  // Event listeners
+  if (startBtn) {
+    startBtn.addEventListener('click', () => {
+      showPreloader('Starting VNC stream...');
+      
+      // First make HTTP request to device to start VNC
+      const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+      const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+      
+      fetch(`/device/{{ device_id }}/apis/vnc/start`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showNotification('VNC stream started on device', 'success');
+          
+          // Now connect to Socket.IO server
+          if (!vncSocket || !vncSocket.connected) {
+            connectSocket();
+            // Wait a bit for connection before emitting
+            setTimeout(() => {
+              if (vncSocket && vncSocket.connected) {
+                vncSocket.emit('start_stream');
+              }
+              hidePreloader();
+            }, 1000);
+          } else {
+            vncSocket.emit('start_stream');
+            hidePreloader();
+          }
+        } else {
+          hidePreloader();
+          showNotification(data.message || 'Failed to start VNC stream', 'error');
+        }
+      })
+      .catch(error => {
+        hidePreloader();
+        console.error('Error starting VNC stream:', error);
+        showNotification('Error starting VNC stream', 'error');
+      });
+    });
+  }
+
+  if (stopBtn) {
+    stopBtn.addEventListener('click', () => {
+      showPreloader('Stopping VNC stream...');
+      
+      // Stop Socket.IO stream first
+      if (vncSocket && vncSocket.connected) {
+        vncSocket.emit('stop_stream');
+      }
+      
+      // Then make HTTP request to device to stop VNC
+      const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+      const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+      
+      fetch(`/device/{{ device_id }}/apis/vnc/stop`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        hidePreloader();
+        if (data.success) {
+          showNotification('VNC stream stopped', 'success');
+        } else {
+          showNotification(data.message || 'Failed to stop VNC stream', 'warning');
+        }
+      })
+      .catch(error => {
+        hidePreloader();
+        console.error('Error stopping VNC stream:', error);
+        showNotification('Error stopping VNC stream', 'warning');
+      });
+    });
+  }
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', () => {
+      showNotification('Screen refreshed', 'success');
+    });
+  }
+
+  // Test connection button
+  if (testConnBtn) {
+    testConnBtn.addEventListener('click', () => {
+      console.log('[VNC] Test connection button clicked');
+      console.log('[VNC] Current socket state:', vncSocket ? vncSocket.connected : 'null');
+      
+      if (!vncSocket || !vncSocket.connected) {
+        showNotification('Attempting to connect to VNC server...', 'warning');
+        connectSocket();
+      } else {
+        console.log('[VNC] Testing gesture with connected socket');
+        showNotification('Testing gesture...', 'success');
+        vncSocket.emit('perform_tap', {x: 540, y: 960});
+      }
+    });
+  }
+
+  // Gesture controls
+  if (tapBtn) {
+    console.log('[VNC] Adding tap button listener');
+    tapBtn.addEventListener('click', () => {
+      console.log('[VNC] Tap button clicked');
+      tap();
+    });
+  }
+
+  if (swipeUpBtn) {
+    console.log('[VNC] Adding swipe up button listener');
+    swipeUpBtn.addEventListener('click', () => {
+      console.log('[VNC] Swipe up button clicked');
+      swipeUp();
+    });
+  }
+
+  if (swipeDownBtn) {
+    console.log('[VNC] Adding swipe down button listener');
+    swipeDownBtn.addEventListener('click', () => {
+      console.log('[VNC] Swipe down button clicked');
+      swipeDown();
+    });
+  }
+
+  if (swipeLeftBtn) {
+    console.log('[VNC] Adding swipe left button listener');
+    swipeLeftBtn.addEventListener('click', () => {
+      console.log('[VNC] Swipe left button clicked');
+      swipeLeft();
+    });
+  }
+
+  if (swipeRightBtn) {
+    console.log('[VNC] Adding swipe right button listener');
+    swipeRightBtn.addEventListener('click', () => {
+      console.log('[VNC] Swipe right button clicked');
+      swipeRight();
+    });
+  }
+
+  if (backBtn) {
+    console.log('[VNC] Adding back button listener');
+    backBtn.addEventListener('click', () => {
+      console.log('[VNC] Back button clicked');
+      back();
+    });
+  }
+
+  if (homeBtn) {
+    console.log('[VNC] Adding home button listener');
+    homeBtn.addEventListener('click', () => {
+      console.log('[VNC] Home button clicked');
+      home();
+    });
+  }
+
+  if (recentsBtn) {
+    console.log('[VNC] Adding recents button listener');
+    recentsBtn.addEventListener('click', () => {
+      console.log('[VNC] Recents button clicked');
+      recents();
+    });
+  }
+
+  // Check initial VNC status
+  function checkVNCStatus() {
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+    
+    fetch(`/device/{{ device_id }}/apis/vnc/status`, {
+      headers: {
+        'X-CSRFToken': csrfToken
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.active) {
+        showNotification('VNC stream is already active', 'success');
+        // Auto-connect to Socket.IO if stream is active
+        connectSocket();
+      }
+    })
+    .catch(error => {
+      console.error('Error checking VNC status:', error);
+    });
+  }
+
+  // Initialize connection on page load
+  window.addEventListener('load', () => {
+    if (preloader.classList.contains('show')) hidePreloader();
+    console.log('[VNC] Page loaded, ready to connect');
+    
+    // Check if VNC stream is already active
+    checkVNCStatus();
+  });
+
+  // Handle page unload
+  window.addEventListener('beforeunload', () => {
+    if (vncSocket && vncSocket.connected) {
+      vncSocket.disconnect();
+    }
+  });
+</script>
+{% endblock %}

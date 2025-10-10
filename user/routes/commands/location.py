@@ -1,7 +1,7 @@
 from flask import Blueprint, flash, get_flashed_messages, render_template, redirect, url_for, current_app
 from ..auth import auth_required
 from models.devices import DeviceLocation, Device
-from apis.devices import getLocationInfo
+from apis.devices import getLocationInfo, getFreshLocation
 import requests
 from utils.caching import cache
 
@@ -68,10 +68,17 @@ def device_location(device_id):
         DeviceLocation.timestamp.desc()).first()
     location_network = DeviceLocation.query.filter_by(device_id=device_id, provider='network').order_by(
         DeviceLocation.timestamp.desc()).first()
+    print(location_gps.to_dict(), location_network.to_dict())
+
     if location_gps is None or location_network is None:
-        device_ip = Device.query.filter_by(device_id=device_id).first().device_ip
+        device_ip = Device.query.filter_by(
+            device_id=device_id).first().device_ip
         res = getLocationInfo(device_id, device_ip)
         print(res)
+        location_gps = DeviceLocation.query.filter_by(device_id=device_id, provider='gps').order_by(
+            DeviceLocation.timestamp.desc()).first()
+        location_network = DeviceLocation.query.filter_by(device_id=device_id, provider='network').order_by(
+            DeviceLocation.timestamp.desc()).first()
     gps_place = get_place(location_gps.latitude, location_gps.longitude)
     network_place = get_place(
         location_network.latitude, location_network.longitude)
@@ -89,19 +96,16 @@ def get_fresh_location(device_id):
             'title': 'Device Not Found'
         }
         flash(alert)
-        return redirect(url_for('commands.device_location', device_id=device_id))
+        return redirect(url_for('location_command.device_location', device_id=device_id))
 
-    url = f'http://{device.device_ip}:8080/getFreshLocation'
-    response = requests.get(url, timeout=50)
-    if response.status_code == 200:
-        data = response.json()
+    res = getFreshLocation(device_id, device.device_ip)
+    if res:
         alert = {
             'type': 'success',
             'message': 'Location details updated successfully!',
             'title': 'Location Updated'
         }
         flash(alert)
-        return redirect(url_for('commands.device_location', device_id=device_id))
     else:
         alert = {
             'type': 'warning',
@@ -109,4 +113,4 @@ def get_fresh_location(device_id):
             'title': 'Location Update Failed'
         }
         flash(alert)
-        return redirect(url_for('commands.device_location', device_id=device_id))
+    return redirect(url_for('location_command.device_location', device_id=device_id))

@@ -17,6 +17,16 @@
 />
 {% endblock %} {% block content %}
 
+<div class="preloader-overlay" id="preloader">
+  <div class="preloader-container">
+    <div class="preloader"></div>
+    <div class="preloader-text">Updating Call Logs...</div>
+  </div>
+  <style>
+
+  </style>
+</div>
+
 <div class="content-section active" id="call-details-section">
   <div class="d-flex align-items-center mb-4">
     <div class="flex-fill">
@@ -30,9 +40,12 @@
       <p class="text-muted mb-0">Here you can check your device call details</p>
     </div>
     <div class="ms-4">
-      <button class="btn btn-outline-theme btn-lg" id="refreshBtn">
-        <i class="fa fa-refresh me-1"></i> Refresh
-      </button>
+      <form action="{{ url_for('call_details_command.get_fresh_calls', device_id=request.path.split('/')[2]) }}" method="post" id="refreshForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <button type="submit" class="btn btn-outline-theme btn-lg" id="refreshButton">
+          <i class="fa fa-refresh me-1"></i> Refresh
+        </button>
+      </form>
     </div>
   </div>
   <div class="card">
@@ -189,6 +202,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
 <script>
+  // Preloader handling
+  document.getElementById("refreshForm")?.addEventListener("submit", function () {
+    const preloader = document.getElementById("preloader");
+    preloader.style.display = "flex";
+    preloader.offsetHeight;
+    preloader.classList.add("show");
+  });
+
+  window.addEventListener("load", function () {
+    const preloader = document.getElementById("preloader");
+    preloader.classList.remove("show");
+    setTimeout(() => (preloader.style.display = "none"), 300);
+  });
+
   var handleRenderTableData = function () {
     var table = $("#datatableDefault").DataTable({
       dom: "<'row mb-3'<'col-md-4 mb-3 mb-md-0'l><'col-md-8 text-right'<'d-flex justify-content-end'fB>>>t<'row align-items-center'<'mr-auto col-md-6 mb-3 mb-md-0 mt-n2 'i><'mb-0 col-md-6'p>>",

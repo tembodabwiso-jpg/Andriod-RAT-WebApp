@@ -21,13 +21,20 @@
       </p>
     </div>
     <div class="ms-4">
-      <button
-        type="button"
-        class="btn btn-outline-theme btn-lg"
-        id="refreshButton"
+      <form
+        action="{{ url_for('device_info_command.get_device_details', device_id=request.path.split('/')[2]) }}"
+        method="post"
+        id="refreshForm"
       >
-        <i class="fa fa-refresh me-1"></i> Refresh
-      </button>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <button
+          type="submit"
+          class="btn btn-outline-theme btn-lg"
+          id="refreshButton"
+        >
+          <i class="fa fa-refresh me-1"></i> Refresh
+        </button>
+      </form>
     </div>
   </div>
 
@@ -53,7 +60,7 @@
             <div class="col-6">
               <div class="info-item">
                 <label class="text-muted mb-1">Manufacturer</label>
-                <div class="fw-medium">{{ device_info.manufacturer }}</div>
+                <div class="fw-medium">{{ device_info.manufacturer.title() }}</div>
               </div>
             </div>
             <div class="col-6">
@@ -202,7 +209,7 @@
           <div class="d-flex align-items-center mb-4">
             <div class="flex-fill">
               <h3 class="card-title mb-0">
-                <i class="fa fa-android me-2 text-theme"></i>
+                <i class="fab fa-android me-2 text-theme"></i>
                 OS Information
               </h3>
             </div>
@@ -281,4 +288,17 @@
     letter-spacing: 0.3px;
   }
 </style>
-{% endblock content %}
+{% endblock content %} {% block extra_js %}
+<script>
+  // Preloader handling
+  document
+    .getElementById("refreshForm")
+    .addEventListener("submit", function () {
+      const preloader = document.getElementById("preloader");
+      preloader.style.display = "flex";
+      // Trigger reflow
+      preloader.offsetHeight;
+      preloader.classList.add("show");
+    });
+</script>
+{% endblock extra_js %}

