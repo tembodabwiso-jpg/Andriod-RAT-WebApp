@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, redirect, url_for, get_flashed_messages, flash, session
-from models.users import User
+from models.admins import Admin
 from config.database import db
 from werkzeug.security import check_password_hash, generate_password_hash
 from functools import wraps
@@ -28,7 +28,7 @@ def login():
             flash(alert)
             return redirect(url_for('auth.login'))
 
-        user = User.query.filter_by(email=email).first()
+        user = Admin.query.filter_by(email=email).first()
 
         if user and check_password_hash(user.password, password):
             session['admin_id'] = user.id

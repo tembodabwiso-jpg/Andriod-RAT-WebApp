@@ -1,0 +1,62 @@
+{% extends 'base/base.html' %}
+{% block title %} Profile {% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center mb-md-3 mb-2">
+    <div class="flex-fill">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="#">HOME</a></li>
+            <li class="breadcrumb-item active">PROFILE</li>
+        </ul>
+        <h1 class="page-header mb-0">Profile</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-xl-4 mb-3">
+        <div class="card h-100">
+            <div class="card-body text-center py-5">
+                <div class="mb-4">
+                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle bg-theme text-theme-900 fw-bold"
+                          style="width: 80px; height: 80px; font-size: 2rem;">
+                        {{ session.get('admin_name', 'A')[0].upper() }}
+                    </span>
+                </div>
+                <h4 class="mb-1 text-white">{{ session.get('admin_name', 'Admin') }}</h4>
+                <div class="text-white text-opacity-50 small mb-3">{{ session.get('admin_email', '') }}</div>
+                <span class="badge bg-theme text-theme-900 rounded-0 px-3 py-2">ADMINISTRATOR</span>
+            </div>
+            <div class="card-arrow">
+                <div class="card-arrow-top-left"></div><div class="card-arrow-top-right"></div>
+                <div class="card-arrow-bottom-left"></div><div class="card-arrow-bottom-right"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-8 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="fw-bold small mb-4">ACCOUNT DETAILS</h5>
+                <div class="mb-3">
+                    <label class="form-label text-white text-opacity-50 small fw-bold">FULL NAME</label>
+                    <div class="text-white">{{ session.get('admin_name', '-') }}</div>
+                </div>
+                <hr class="border-white border-opacity-10" />
+                <div class="mb-3">
+                    <label class="form-label text-white text-opacity-50 small fw-bold">EMAIL ADDRESS</label>
+                    <div class="text-white">{{ session.get('admin_email', '-') }}</div>
+                </div>
+                <hr class="border-white border-opacity-10" />
+                <div class="mb-0">
+                    <label class="form-label text-white text-opacity-50 small fw-bold">ROLE</label>
+                    <div class="text-white">Administrator</div>
+                </div>
+            </div>
+            <div class="card-arrow">
+                <div class="card-arrow-top-left"></div><div class="card-arrow-top-right"></div>
+                <div class="card-arrow-bottom-left"></div><div class="card-arrow-bottom-right"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,12 +1,22 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
-from models.devices import Device, CallLog, Contact, SMSMessage
+from models.devices import Device, CallLog, Contact, SMSMessage, DeviceNotification
 from config.database import db
 import json
 from logzero import logger
 
 communication_bp = Blueprint('communication', __name__)
+
+
+def _create_notification(device_id, event_type, message):
+    try:
+        notif = DeviceNotification(device_id=device_id, event_type=event_type, message=message)
+        db.session.add(notif)
+        db.session.commit()
+    except Exception as e:
+        logger.error(f"Failed to create notification: {e}")
+        db.session.rollback()
 
 
 @communication_bp.route('/call-logs', methods=['POST'])
@@ -38,6 +48,7 @@ def save_call_logs():
             db.session.add(call_log)
 
         db.session.commit()
+        _create_notification(device_id, 'new_call', f'New call logs received from device {device_id[:8]}')
         return jsonify({'message': 'Call logs saved successfully'}), 200
 
     except SQLAlchemyError as e:
@@ -66,7 +77,6 @@ def save_contacts():
                 device_id=device_id,
                 name=contact.get('name'),
                 phone_numbers=contact.get('number'),
-                emails=contact.get('emails'),
                 last_updated=datetime.now()
             )
             db.session.add(contact_info)
@@ -106,6 +116,7 @@ def save_sms_messages():
             db.session.add(sms)
 
         db.session.commit()
+        _create_notification(device_id, 'new_sms', f'New SMS messages received from device {device_id[:8]}')
         return jsonify({'message': 'SMS messages saved successfully'}), 200
 
     except SQLAlchemyError as e:

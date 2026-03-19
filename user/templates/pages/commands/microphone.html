@@ -1,0 +1,269 @@
+{% extends 'base/commands.html' %}
+{% block extra_css %}
+<style>
+  .rec-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .recording-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .recording-indicator.active {
+    background: rgba(255, 91, 87, 0.15);
+    color: #ff5b57;
+    border: 1px solid rgba(255, 91, 87, 0.4);
+  }
+
+  .recording-indicator.inactive {
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.4);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .recording-indicator .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  .recording-indicator.active .dot {
+    animation: blink 1s step-start infinite;
+  }
+
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+
+  .recordings-table th { color: rgba(255,255,255,0.5); font-size: 12px; font-weight: 500; }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: rgba(255,255,255,0.3);
+  }
+
+  .empty-state i { font-size: 48px; margin-bottom: 16px; display: block; }
+
+  .duration-badge {
+    background: rgba(255,255,255,0.08);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.6);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="rec-header">
+    <div>
+      <h4 class="mb-1 text-white">Microphone Recording</h4>
+      <small class="text-muted">Device: {{ device.device_ip }}</small>
+    </div>
+    <div class="d-flex align-items-center gap-3">
+      <span id="recIndicator" class="recording-indicator {% if is_recording %}active{% else %}inactive{% endif %}">
+        <span class="dot"></span>
+        <span id="recLabel">{% if is_recording %}Recording...{% else %}Idle{% endif %}</span>
+      </span>
+      <div class="d-flex gap-2 align-items-center">
+        <select id="durationSelect" class="form-select form-select-sm w-auto bg-dark text-white border-secondary">
+          <option value="15">15 sec</option>
+          <option value="30" selected>30 sec</option>
+          <option value="60">1 min</option>
+          <option value="120">2 min</option>
+          <option value="300">5 min</option>
+        </select>
+        <button id="startBtn" class="btn btn-theme" {% if is_recording %}disabled{% endif %}>
+          <i class="fa fa-microphone me-1"></i>Start
+        </button>
+        <button id="stopBtn" class="btn btn-danger" {% if not is_recording %}disabled{% endif %}>
+          <i class="fa fa-stop me-1"></i>Stop
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card bg-dark border-secondary">
+    <div class="card-body p-0">
+      {% if recordings %}
+      <table class="table table-dark table-hover mb-0 recordings-table">
+        <thead>
+          <tr>
+            <th class="ps-3">Filename</th>
+            <th>Duration</th>
+            <th>Recorded At</th>
+            <th class="pe-3 text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="recordingsBody">
+          {% for r in recordings %}
+          <tr id="row-{{ r.id }}">
+            <td class="ps-3">
+              <i class="fa fa-microphone me-2 text-theme"></i>{{ r.filename }}
+            </td>
+            <td>
+              {% if r.duration_seconds %}
+                <span class="duration-badge">{{ r.duration_seconds }}s</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td class="text-muted small">{{ r.created_at.strftime('%d %b %Y %H:%M') if r.created_at else '' }}</td>
+            <td class="pe-3 text-end">
+              <a href="{{ r.file_url }}" class="btn btn-sm btn-outline-secondary me-1" download>
+                <i class="fa fa-download"></i>
+              </a>
+              <button class="btn btn-sm btn-outline-danger" onclick="deleteRecording({{ r.id }})">
+                <i class="fa fa-trash"></i>
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state" id="emptyState">
+        <i class="fa fa-microphone-slash"></i>
+        <p>No recordings yet. Press <strong>Start</strong> to begin recording.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const deviceId = '{{ device_id }}';
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+
+  const startBtn = document.getElementById('startBtn');
+  const stopBtn = document.getElementById('stopBtn');
+  const indicator = document.getElementById('recIndicator');
+  const recLabel = document.getElementById('recLabel');
+
+  function setRecording(active) {
+    startBtn.disabled = active;
+    stopBtn.disabled = !active;
+    if (active) {
+      indicator.classList.replace('inactive', 'active');
+      recLabel.textContent = 'Recording...';
+    } else {
+      indicator.classList.replace('active', 'inactive');
+      recLabel.textContent = 'Idle';
+    }
+  }
+
+  startBtn.addEventListener('click', function () {
+    const duration = parseInt(document.getElementById('durationSelect').value, 10);
+    startBtn.disabled = true;
+    startBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i>Starting...';
+
+    fetch(`/device/${deviceId}/apis/mic/start`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ duration })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          setRecording(true);
+          toastr.success(data.message || 'Recording started');
+        } else {
+          toastr.error(data.message || 'Failed to start recording');
+          startBtn.disabled = false;
+        }
+      })
+      .catch(() => {
+        toastr.error('Request failed');
+        startBtn.disabled = false;
+      })
+      .finally(() => {
+        startBtn.innerHTML = '<i class="fa fa-microphone me-1"></i>Start';
+      });
+  });
+
+  stopBtn.addEventListener('click', function () {
+    stopBtn.disabled = true;
+    stopBtn.innerHTML = '<i class="fa fa-spinner fa-spin me-1"></i>Stopping...';
+
+    fetch(`/device/${deviceId}/apis/mic/stop`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': csrfToken, 'Content-Type': 'application/json' }
+    })
+      .then(r => r.json())
+      .then(data => {
+        setRecording(false);
+        if (data.success) {
+          toastr.success('Recording stopped');
+          if (data.recording) addRecordingRow(data.recording);
+        } else {
+          toastr.warning(data.message || 'Stop request sent');
+        }
+      })
+      .catch(() => toastr.error('Request failed'))
+      .finally(() => {
+        stopBtn.innerHTML = '<i class="fa fa-stop me-1"></i>Stop';
+      });
+  });
+
+  function addRecordingRow(r) {
+    const empty = document.getElementById('emptyState');
+    if (empty) {
+      // Replace empty state with table
+      empty.closest('.card-body').innerHTML = `
+        <table class="table table-dark table-hover mb-0 recordings-table">
+          <thead><tr>
+            <th class="ps-3">Filename</th>
+            <th>Duration</th>
+            <th>Recorded At</th>
+            <th class="pe-3 text-end">Actions</th>
+          </tr></thead>
+          <tbody id="recordingsBody"></tbody>
+        </table>`;
+    }
+    const tbody = document.getElementById('recordingsBody');
+    const tr = document.createElement('tr');
+    tr.id = `row-${r.id}`;
+    tr.innerHTML = `
+      <td class="ps-3"><i class="fa fa-microphone me-2 text-theme"></i>${r.filename}</td>
+      <td>${r.duration_seconds ? `<span class="duration-badge">${r.duration_seconds}s</span>` : '<span class="text-muted">—</span>'}</td>
+      <td class="text-muted small">${r.created_at || 'Just now'}</td>
+      <td class="pe-3 text-end">
+        <a href="${r.file_url}" class="btn btn-sm btn-outline-secondary me-1" download><i class="fa fa-download"></i></a>
+        <button class="btn btn-sm btn-outline-danger" onclick="deleteRecording(${r.id})"><i class="fa fa-trash"></i></button>
+      </td>`;
+    tbody.insertBefore(tr, tbody.firstChild);
+  }
+
+  function deleteRecording(id) {
+    if (!confirm('Delete this recording?')) return;
+    fetch(`/device/${deviceId}/apis/mic/${id}/delete`, {
+      method: 'DELETE',
+      headers: { 'X-CSRFToken': csrfToken }
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          document.getElementById(`row-${id}`)?.remove();
+          toastr.success('Deleted');
+        } else {
+          toastr.error(data.message || 'Delete failed');
+        }
+      })
+      .catch(() => toastr.error('Request failed'));
+  }
+</script>
+{% endblock %}

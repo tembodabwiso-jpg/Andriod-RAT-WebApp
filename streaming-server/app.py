@@ -109,13 +109,37 @@ def emit_event():
 # Socket event prints (server side) for visibility
 
 
+# Track connected clients and their device associations
+connected_clients = {}  # sid -> {'device_id': str, 'type': 'device'|'viewer'}
+
+
 @sio.event
 def connect(sid, environ):
+    """Accept connection. Clients should emit 'authenticate' with device_id after connecting."""
     print('socket connected', sid)
+    connected_clients[sid] = {'device_id': None, 'type': 'viewer'}
+
+
+@sio.on('authenticate')
+def handle_auth(sid, data=None):
+    """Authenticate a socket client with a device_id."""
+    if not data or not isinstance(data, dict):
+        print(f'auth rejected for {sid}: no data')
+        return
+    device_id = data.get('device_id')
+    client_type = data.get('type', 'viewer')  # 'device' or 'viewer'
+    if device_id:
+        connected_clients[sid] = {'device_id': device_id, 'type': client_type}
+        sio.enter_room(sid, f'device_{device_id}')
+        print(f'authenticated {sid} as {client_type} for device {device_id[:12]}')
+        sio.emit('auth_ok', {'device_id': device_id}, to=sid)
+    else:
+        print(f'auth rejected for {sid}: missing device_id')
 
 
 @sio.event
 def disconnect(sid):
+    connected_clients.pop(sid, None)
     print('socket disconnected', sid)
 
 # Just acknowledge commands (the Android app reacts to these)
@@ -175,12 +199,15 @@ def handle_screen_data(sid, data=None, *args, **kwargs):
         if data and isinstance(data, dict) and 'image' in data and data['image']:
             img_len = len(data['image'])
         print(f'screen_data from {sid} image_len={img_len}')
-        # Broadcast to all connected web UI clients as 'screen_update' (server.py compatibility)
+        # Broadcast to viewers watching this device (or all if unauthenticated)
+        client_info = connected_clients.get(sid, {})
+        device_id = client_info.get('device_id')
+        room = f'device_{device_id}' if device_id else None
         sio.emit('screen_update', {
             'image': data.get('image') if isinstance(data, dict) else None,
             'width': data.get('width') if isinstance(data, dict) else 0,
             'height': data.get('height') if isinstance(data, dict) else 0
-        })
+        }, room=room, skip_sid=sid)
     except Exception as e:
         print('screen_data handler error', e)
 
@@ -192,11 +219,14 @@ def handle_camera_data(sid, data=None, *args, **kwargs):
         if data and isinstance(data, dict) and 'image' in data and data['image']:
             img_len = len(data['image'])
         print(f'camera_data from {sid} image_len={img_len}')
+        client_info = connected_clients.get(sid, {})
+        device_id = client_info.get('device_id')
+        room = f'device_{device_id}' if device_id else None
         sio.emit('camera_update', {
             'image': data.get('image') if isinstance(data, dict) else None,
             'width': data.get('width') if isinstance(data, dict) else 0,
             'height': data.get('height') if isinstance(data, dict) else 0
-        })
+        }, room=room, skip_sid=sid)
     except Exception as e:
         print('camera_data handler error', e)
 

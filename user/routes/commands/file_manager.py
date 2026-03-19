@@ -5,6 +5,9 @@ from datetime import datetime
 import uuid
 from werkzeug.utils import secure_filename
 from ..auth import auth_required
+from models.devices import Device
+import requests as http_requests
+from logzero import logger
 
 file_manager_command = Blueprint('file_manager_command', __name__)
 
@@ -93,8 +96,13 @@ def get_file_icon(file_type, file_name):
 @file_manager_command.route('/device/<device_id>/commands/file-manager')
 @auth_required
 def file_manager(device_id):
+    device = Device.query.get(device_id)
+    if not device:
+        return "Device not found", 404
     return render_template(
         "pages/commands/file_manager.html",
+        device_id=device_id,
+        device_ip=device.device_ip,
         storage_locations=DUMMY_PATHS
     )
 
@@ -102,50 +110,64 @@ def file_manager(device_id):
 @auth_required
 def list_files(device_id):
     path = request.args.get('path', '/storage/emulated/0')
-    
-    # Get files for the requested path from our dummy data
+
+    device = Device.query.get(device_id)
+    if device:
+        try:
+            url = f"http://{device.device_ip}:8080/files/list"
+            resp = http_requests.get(url, params={'path': path}, timeout=8)
+            if resp.ok:
+                data = resp.json()
+                files = data.get('files', [])
+                for f in files:
+                    f['icon'] = get_file_icon(f.get('type', 'file'), f.get('name', ''))
+                return jsonify({'success': True, 'path': path, 'files': files})
+        except Exception as e:
+            logger.debug(f"File manager request failed: {e}")  # Fall through to dummy data
+
+    # Fallback to dummy data when device is unreachable
     files = DUMMY_FILES.get(path, [])
-    
-    # Add icon information
-    for file in files:
-        file['icon'] = get_file_icon(file['type'], file['name'])
-    
-    return jsonify({
-        'success': True,
-        'path': path,
-        'files': files
-    })
+    for f in files:
+        f['icon'] = get_file_icon(f['type'], f['name'])
+    return jsonify({'success': True, 'path': path, 'files': files})
 
 @file_manager_command.route('/device/<device_id>/commands/file-manager/upload', methods=['POST'])
 @auth_required
 def upload_file(device_id):
     path = request.form.get('path', '/storage/emulated/0')
-    
+
     if 'file' not in request.files:
         return jsonify({'success': False, 'message': 'No file part'}), 400
-    
+
     file = request.files['file']
-    
     if file.filename == '':
         return jsonify({'success': False, 'message': 'No selected file'}), 400
-    
-    # In a real implementation, we would save the file to the device
-    # For this dummy implementation, we'll just pretend it worked
-    
-    # Create a dummy file entry
+
     filename = secure_filename(file.filename)
-    size = len(file.read()) # Get file size in bytes
-    file.seek(0) # Reset file pointer after reading
-    
-    # Convert size to human-readable format
+    file_bytes = file.read()
+    size = len(file_bytes)
+    file.seek(0)
+
+    # Try forwarding to the device
+    device = Device.query.get(device_id)
+    if device:
+        try:
+            url = f"http://{device.device_ip}:8080/files/upload"
+            resp = http_requests.post(url, files={'file': (filename, file_bytes)},
+                                      data={'path': path}, timeout=15)
+            if resp.ok:
+                return jsonify({'success': True, 'message': 'File uploaded to device'})
+        except Exception as e:
+            logger.debug(f"File manager request failed: {e}")
+
+    # Fallback: record in dummy data
     if size < 1024:
         size_str = f"{size} B"
     elif size < 1024 * 1024:
         size_str = f"{size / 1024:.1f} KB"
     else:
         size_str = f"{size / (1024 * 1024):.1f} MB"
-    
-    # Add the file to our dummy data
+
     new_file = {
         "name": filename,
         "type": "file",
@@ -154,15 +176,10 @@ def upload_file(device_id):
         "modified": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "icon": get_file_icon("file", filename)
     }
-    
     if path in DUMMY_FILES:
         DUMMY_FILES[path].append(new_file)
-    
-    return jsonify({
-        'success': True,
-        'message': 'File uploaded successfully',
-        'file': new_file
-    })
+
+    return jsonify({'success': True, 'message': 'File uploaded successfully', 'file': new_file})
 
 @file_manager_command.route('/device/<device_id>/commands/file-manager/download', methods=['GET'])
 @auth_required
@@ -237,19 +254,26 @@ def create_folder(device_id):
 def delete_file(device_id):
     data = request.get_json()
     file_path = data.get('path')
-    
+
     if not file_path:
         return jsonify({'success': False, 'message': 'No file path provided'}), 400
-    
-    # Get parent directory and filename
-    parent_dir = '/'.join(file_path.split('/')[:-1])
+
     file_name = file_path.split('/')[-1]
-    
-    # Remove file from our dummy data
+
+    # Try forwarding to the device
+    device = Device.query.get(device_id)
+    if device:
+        try:
+            url = f"http://{device.device_ip}:8080/files/delete"
+            resp = http_requests.post(url, json={'path': file_path}, timeout=8)
+            if resp.ok:
+                return jsonify({'success': True, 'message': f'"{file_name}" deleted successfully'})
+        except Exception as e:
+            logger.debug(f"File manager request failed: {e}")
+
+    # Fallback: remove from dummy data
+    parent_dir = '/'.join(file_path.split('/')[:-1])
     if parent_dir in DUMMY_FILES:
         DUMMY_FILES[parent_dir] = [f for f in DUMMY_FILES[parent_dir] if f['path'] != file_path]
-    
-    return jsonify({
-        'success': True,
-        'message': f'"{file_name}" deleted successfully'
-    }) 
+
+    return jsonify({'success': True, 'message': f'"{file_name}" deleted successfully'})

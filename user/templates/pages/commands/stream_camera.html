@@ -493,7 +493,7 @@
   }
   updateCameraButtons();
 
-  const camSocket = io(`${location.protocol}//${location.hostname}:5001`, {
+  const camSocket = io(`${location.protocol}//${location.hostname}:{{ socket_port }}`, {
     transports: ["websocket"],
   });
   camSocket.on("connect", () => {

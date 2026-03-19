@@ -1,0 +1,124 @@
+{% extends 'base/base.html' %}
+{% block title %} Policies {% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center mb-3">
+    <div class="flex-fill">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/dashboard">HOME</a></li>
+            <li class="breadcrumb-item active">POLICIES</li>
+        </ul>
+        <h1 class="page-header mb-0">Policy Management</h1>
+    </div>
+    <button class="btn btn-outline-theme" data-bs-toggle="modal" data-bs-target="#createPolicyModal">
+        <i class="fa fa-plus me-1"></i> New Policy
+    </button>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover text-nowrap mb-0 small">
+                <thead>
+                    <tr class="text-white text-opacity-60">
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Group</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for policy in policies %}
+                    <tr>
+                        <td>{{ policy.id }}</td>
+                        <td class="fw-bold">{{ policy.name }}</td>
+                        <td class="text-white text-opacity-50">{{ policy.description or '-' }}</td>
+                        <td>
+                            {% if policy.group %}
+                            <span class="badge bg-info">{{ policy.group.name }}</span>
+                            {% else %}
+                            <span class="text-white text-opacity-25">Global</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if policy.is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ policy.created_at | format_datetime if policy.created_at }}</td>
+                        <td>
+                            <form method="POST" action="/policies/{{ policy.id }}/toggle" class="d-inline">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-{{ 'warning' if policy.is_active else 'success' }}" title="{{ 'Deactivate' if policy.is_active else 'Activate' }}">
+                                    <i class="fa fa-{{ 'pause' if policy.is_active else 'play' }}"></i>
+                                </button>
+                            </form>
+                            <form method="POST" action="/policies/{{ policy.id }}/delete" class="d-inline" onsubmit="return confirm('Delete this policy?')">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fa fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-white text-opacity-50 py-4">No policies created yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-arrow">
+        <div class="card-arrow-top-left"></div><div class="card-arrow-top-right"></div>
+        <div class="card-arrow-bottom-left"></div><div class="card-arrow-bottom-right"></div>
+    </div>
+</div>
+
+<!-- Create Policy Modal -->
+<div class="modal fade" id="createPolicyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <form method="POST" action="/policies/create">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Create Policy</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Policy Name</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Restrict Camera" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="2" placeholder="What this policy does"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Apply to Group</label>
+                        <select name="group_id" class="form-select">
+                            <option value="">Global (all devices)</option>
+                            {% for g in groups %}
+                            <option value="{{ g.id }}">{{ g.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Rules (JSON)</label>
+                        <textarea name="rules_json" class="form-control font-monospace" rows="4" placeholder='{"disable_camera": true, "max_password_age_days": 30}'>{}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-theme">Create Policy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

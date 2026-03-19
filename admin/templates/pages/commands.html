@@ -1,0 +1,196 @@
+{% extends 'base/base.html' %}
+{% block title %} Commands {% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center mb-3">
+    <div class="flex-fill">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/dashboard">HOME</a></li>
+            <li class="breadcrumb-item active">COMMANDS</li>
+        </ul>
+        <h1 class="page-header mb-0">Command Management</h1>
+    </div>
+    <button class="btn btn-outline-theme" data-bs-toggle="modal" data-bs-target="#sendCommandModal">
+        <i class="fa fa-paper-plane me-1"></i> Send Command
+    </button>
+</div>
+
+<!-- Filters -->
+<div class="row mb-3">
+    <div class="col-md-8">
+        <form method="GET" class="d-flex gap-2">
+            <select name="status" class="form-select form-select-sm" style="max-width:160px;">
+                <option value="">All Statuses</option>
+                <option value="PENDING" {{ 'selected' if status_filter == 'PENDING' }}>PENDING</option>
+                <option value="SENT" {{ 'selected' if status_filter == 'SENT' }}>SENT</option>
+                <option value="DELIVERED" {{ 'selected' if status_filter == 'DELIVERED' }}>DELIVERED</option>
+                <option value="EXECUTED" {{ 'selected' if status_filter == 'EXECUTED' }}>EXECUTED</option>
+                <option value="FAILED" {{ 'selected' if status_filter == 'FAILED' }}>FAILED</option>
+            </select>
+            <select name="device_id" class="form-select form-select-sm" style="max-width:250px;">
+                <option value="">All Devices</option>
+                {% for d in devices %}
+                <option value="{{ d.device_id }}" {{ 'selected' if device_filter == d.device_id }}>{{ d.device_name or d.device_id[:12] }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-outline-theme">Filter</button>
+        </form>
+    </div>
+</div>
+
+<!-- Commands Table -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover text-nowrap mb-0 small">
+                <thead>
+                    <tr class="text-white text-opacity-60">
+                        <th>ID</th>
+                        <th>Device</th>
+                        <th>Command</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Executed</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for cmd in commands %}
+                    <tr>
+                        <td>{{ cmd.id }}</td>
+                        <td class="text-truncate" style="max-width:120px;">{{ cmd.device_id[:12] }}...</td>
+                        <td><span class="badge bg-theme text-theme-900">{{ cmd.command_type }}</span></td>
+                        <td>
+                            {% if cmd.status == 'EXECUTED' %}
+                            <span class="badge bg-success">{{ cmd.status }}</span>
+                            {% elif cmd.status == 'FAILED' %}
+                            <span class="badge bg-danger">{{ cmd.status }}</span>
+                            {% elif cmd.status == 'PENDING' %}
+                            <span class="badge bg-warning text-dark">{{ cmd.status }}</span>
+                            {% else %}
+                            <span class="badge bg-info">{{ cmd.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ cmd.created_at | format_datetime if cmd.created_at }}</td>
+                        <td>{{ cmd.executed_at | format_datetime if cmd.executed_at else '-' }}</td>
+                        <td class="text-truncate" style="max-width:200px;">{{ cmd.result or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-white text-opacity-50 py-4">No commands found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-arrow">
+        <div class="card-arrow-top-left"></div><div class="card-arrow-top-right"></div>
+        <div class="card-arrow-bottom-left"></div><div class="card-arrow-bottom-right"></div>
+    </div>
+</div>
+
+<!-- Send Command Modal -->
+<div class="modal fade" id="sendCommandModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <form method="POST" action="/commands/send">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Send Command</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Device</label>
+                        <select name="device_id" class="form-select" required>
+                            <option value="">Select device...</option>
+                            {% for d in devices %}
+                            <option value="{{ d.device_id }}">{{ d.device_name or d.device_id[:20] }} ({{ d.device_ip }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Command Type</label>
+                        <select name="command_type" class="form-select" required>
+                            <optgroup label="Device Control">
+                                <option value="LOCK_DEVICE">Lock Device</option>
+                                <option value="UNLOCK_DEVICE">Unlock Device</option>
+                                <option value="WIPE_DEVICE">Wipe Device</option>
+                                <option value="REBOOT_DEVICE">Reboot Device</option>
+                                <option value="SHUTDOWN_DEVICE">Shutdown Device</option>
+                                <option value="SET_PASSWORD">Set Password</option>
+                                <option value="CLEAR_PASSWORD">Clear Password</option>
+                            </optgroup>
+                            <optgroup label="App Management">
+                                <option value="INSTALL_APP">Install App</option>
+                                <option value="UNINSTALL_APP">Uninstall App</option>
+                                <option value="LAUNCH_APP">Launch App</option>
+                                <option value="KILL_APP">Kill App</option>
+                                <option value="CLEAR_APP_DATA">Clear App Data</option>
+                                <option value="START_KIOSK_MODE">Start Kiosk Mode</option>
+                                <option value="STOP_KIOSK_MODE">Stop Kiosk Mode</option>
+                            </optgroup>
+                            <optgroup label="Data Collection">
+                                <option value="GET_LOCATION">Get Location</option>
+                                <option value="GET_DEVICE_INFO">Get Device Info</option>
+                                <option value="GET_BATTERY_INFO">Get Battery Info</option>
+                                <option value="GET_CONTACTS">Get Contacts</option>
+                                <option value="GET_SMS">Get SMS</option>
+                                <option value="GET_CALL_LOGS">Get Call Logs</option>
+                                <option value="GET_APPS">Get Apps</option>
+                                <option value="GET_KEYLOGGER_DATA">Get Keylogger Data</option>
+                                <option value="CAPTURE_SCREENSHOT">Capture Screenshot</option>
+                                <option value="GET_CLIPBOARD">Get Clipboard</option>
+                            </optgroup>
+                            <optgroup label="Communication">
+                                <option value="SEND_SMS">Send SMS</option>
+                                <option value="MAKE_CALL">Make Call</option>
+                            </optgroup>
+                            <optgroup label="Media & Streaming">
+                                <option value="START_CAMERA">Start Camera</option>
+                                <option value="STOP_CAMERA">Stop Camera</option>
+                                <option value="START_VNC">Start VNC</option>
+                                <option value="STOP_VNC">Stop VNC</option>
+                                <option value="START_MIC_RECORDING">Start Mic Recording</option>
+                                <option value="STOP_MIC_RECORDING">Stop Mic Recording</option>
+                            </optgroup>
+                            <optgroup label="Audio & Display">
+                                <option value="SET_VOLUME">Set Volume</option>
+                                <option value="SET_RINGTONE_MODE">Set Ringtone Mode</option>
+                                <option value="PLAY_SOUND">Play Sound</option>
+                                <option value="VIBRATE">Vibrate</option>
+                                <option value="SET_BRIGHTNESS">Set Brightness</option>
+                                <option value="SET_SCREEN_TIMEOUT">Set Screen Timeout</option>
+                            </optgroup>
+                            <optgroup label="Network & Stealth">
+                                <option value="TOGGLE_WIFI">Toggle WiFi</option>
+                                <option value="TOGGLE_BLUETOOTH">Toggle Bluetooth</option>
+                                <option value="HIDE_APP">Hide App</option>
+                                <option value="SHOW_APP">Show App</option>
+                            </optgroup>
+                            <optgroup label="Advanced">
+                                <option value="SHELL_EXEC">Shell Execute</option>
+                                <option value="DELETE_FILE">Delete File</option>
+                                <option value="DOWNLOAD_FILE">Download File</option>
+                                <option value="SET_CLIPBOARD">Set Clipboard</option>
+                                <option value="SHOW_TOAST">Show Toast</option>
+                                <option value="OPEN_URL">Open URL</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Payload (JSON, optional)</label>
+                        <textarea name="payload" class="form-control" rows="3" placeholder='{"key": "value"}'>{}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-theme">Send Command</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

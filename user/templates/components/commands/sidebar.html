@@ -178,18 +178,73 @@
             </div>
           </a>
         </li>
-        <!-- <li class="nav-item">
-          <a class="nav-link command-link" href="#" data-command="settings">
+        <li class="nav-item">
+          <a
+            class="nav-link command-link {% if request.path.endswith('screenshot') %}active{% endif %}"
+            href="screenshot"
+            data-command="screenshot"
+          >
             <div class="command-card">
               <div class="d-flex align-items-center">
                 <div class="command-icon">
-                  <i class="fa fa-cog"></i>
+                  <i class="fa fa-camera"></i>
                 </div>
-                <span class="command-text">Settings</span>
+                <span class="command-text">Screenshot</span>
               </div>
             </div>
           </a>
-        </li> -->
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link command-link {% if request.path.endswith('microphone') %}active{% endif %}"
+            href="microphone"
+            data-command="microphone"
+          >
+            <div class="command-card">
+              <div class="d-flex align-items-center">
+                <div class="command-icon">
+                  <i class="fa fa-microphone"></i>
+                </div>
+                <span class="command-text">Microphone</span>
+              </div>
+            </div>
+          </a>
+        </li>
+        <li class="nav-item mt-2">
+          <div class="menu-header mb-0 fs-12px text-muted px-2">MDM Controls</div>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link command-link {% if request.path.endswith('command-center') %}active{% endif %}"
+            href="command-center"
+            data-command="command-center"
+          >
+            <div class="command-card">
+              <div class="d-flex align-items-center">
+                <div class="command-icon">
+                  <i class="fa fa-terminal"></i>
+                </div>
+                <span class="command-text">Command Center</span>
+              </div>
+            </div>
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            class="nav-link command-link {% if request.path.endswith('policies') %}active{% endif %}"
+            href="policies"
+            data-command="policies"
+          >
+            <div class="command-card">
+              <div class="d-flex align-items-center">
+                <div class="command-icon">
+                  <i class="fa fa-shield"></i>
+                </div>
+                <span class="command-text">Policies</span>
+              </div>
+            </div>
+          </a>
+        </li>
       </ul>
     </div>
     <!-- END menu -->

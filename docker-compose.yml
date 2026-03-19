@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  # All-in-one server (API + User Dashboard + Admin Dashboard + Streaming)
+  mdm-server:
+    build: .
+    ports:
+      - "5000:5000"   # User Dashboard
+      - "5002:5002"   # Admin Dashboard
+      - "8000:8000"   # API Server
+      - "5001:5001"   # Streaming Server (Camera/VNC)
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+      - SQLALCHEMY_DATABASE_URI=sqlite:///app.db
+    volumes:
+      - ./temp:/app/temp
+      - sqlite-data:/app/instance
+    restart: unless-stopped
+
+volumes:
+  sqlite-data:

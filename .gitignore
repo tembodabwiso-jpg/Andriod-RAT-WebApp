@@ -5,3 +5,18 @@ __pycache__
 html/*
 *.zip
 *.bat
+*.db
+instance/
+
+# Firebase credentials (NEVER commit)
+firebase-credentials.json
+google-services.json
+
+# Android build artifacts
+android-client/.gradle/
+android-client/build/
+android-client/app/build/
+android-client/local.properties
+
+# Docker
+docker-compose.override.yml

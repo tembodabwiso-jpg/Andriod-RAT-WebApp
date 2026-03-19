@@ -1,0 +1,63 @@
+{% extends 'base/base.html' %}
+{% block title %} Audit Logs {% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center mb-3">
+    <div class="flex-fill">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/dashboard">HOME</a></li>
+            <li class="breadcrumb-item active">AUDIT LOGS</li>
+        </ul>
+        <h1 class="page-header mb-0">Audit Logs</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover text-nowrap mb-0 small">
+                <thead>
+                    <tr class="text-white text-opacity-60">
+                        <th>ID</th>
+                        <th>Action</th>
+                        <th>Target</th>
+                        <th>User</th>
+                        <th>IP Address</th>
+                        <th>Details</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.id }}</td>
+                        <td><span class="badge bg-theme text-theme-900">{{ log.action }}</span></td>
+                        <td>
+                            {% if log.target_type %}
+                            <span class="text-white text-opacity-50">{{ log.target_type }}:</span>
+                            <span class="text-truncate d-inline-block" style="max-width:120px;vertical-align:bottom;">{{ log.target_id or '-' }}</span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>{{ log.user_id or 'System' }}</td>
+                        <td>{{ log.ip_address or '-' }}</td>
+                        <td class="text-truncate" style="max-width:200px;">{{ log.details or '-' }}</td>
+                        <td>{{ log.created_at | format_datetime if log.created_at }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-white text-opacity-50 py-4">No audit logs recorded yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-arrow">
+        <div class="card-arrow-top-left"></div><div class="card-arrow-top-right"></div>
+        <div class="card-arrow-bottom-left"></div><div class="card-arrow-bottom-right"></div>
+    </div>
+</div>
+
+{% endblock %}

@@ -98,7 +98,8 @@ def stream_camera_page(device_id):
         stream_active=state['active'],
         active_camera=state['camera'],
         started_at=state['started_at'],
-        snapshot_files=snapshots
+        snapshot_files=snapshots,
+        socket_port=SOCKET_PORT
     )
 
 # ---------------- New REST endpoints for Socket.IO based camera flow --------

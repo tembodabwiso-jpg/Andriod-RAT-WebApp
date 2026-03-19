@@ -1,0 +1,29 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "api-server",
+      "runtimeExecutable": "C:\\Users\\Dabz\\OneDrive\\Documents\\GitHub\\Andriod-MDM-WebApp\\venv\\Scripts\\python.exe",
+      "runtimeArgs": ["apis/app.py"],
+      "port": 8000
+    },
+    {
+      "name": "user-dashboard",
+      "runtimeExecutable": "C:\\Users\\Dabz\\OneDrive\\Documents\\GitHub\\Andriod-MDM-WebApp\\venv\\Scripts\\python.exe",
+      "runtimeArgs": ["user/app.py"],
+      "port": 5000
+    },
+    {
+      "name": "admin-panel",
+      "runtimeExecutable": "C:\\Users\\Dabz\\OneDrive\\Documents\\GitHub\\Andriod-MDM-WebApp\\venv\\Scripts\\python.exe",
+      "runtimeArgs": ["admin/app.py"],
+      "port": 5002
+    },
+    {
+      "name": "streaming-server",
+      "runtimeExecutable": "C:\\Users\\Dabz\\OneDrive\\Documents\\GitHub\\Andriod-MDM-WebApp\\venv\\Scripts\\python.exe",
+      "runtimeArgs": ["streaming-server/app.py", "--port", "5001"],
+      "port": 5001
+    }
+  ]
+}

@@ -210,3 +210,71 @@ def getFreshApps(device_id, device_ip):
         logger.error(
             f"Failed to get fresh apps for device {device_id}" + str(e))
         return None
+
+
+def captureScreenshot(device_id, device_ip):
+    try:
+        url = f'http://{device_ip}:{PORT}/captureScreenshot'
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logger.error(f"Failed to capture screenshot for device {device_id}: {response.status_code}")
+            return None
+    except requests.exceptions.ConnectTimeout:
+        logger.error(f"Screenshot capture timed out for device {device_id}")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to capture screenshot for device {device_id}: {e}")
+        return None
+
+
+def startMicRecording(device_id, device_ip, duration=30):
+    try:
+        url = f'http://{device_ip}:{PORT}/mic/start'
+        response = requests.post(url, json={'duration': duration}, timeout=10)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logger.error(f"Failed to start mic recording for device {device_id}: {response.status_code}")
+            return None
+    except requests.exceptions.ConnectTimeout:
+        logger.error(f"Start mic recording timed out for device {device_id}")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to start mic recording for device {device_id}: {e}")
+        return None
+
+
+def stopMicRecording(device_id, device_ip):
+    try:
+        url = f'http://{device_ip}:{PORT}/mic/stop'
+        response = requests.post(url, timeout=10)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logger.error(f"Failed to stop mic recording for device {device_id}: {response.status_code}")
+            return None
+    except requests.exceptions.ConnectTimeout:
+        logger.error(f"Stop mic recording timed out for device {device_id}")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to stop mic recording for device {device_id}: {e}")
+        return None
+
+
+def getMicRecordings(device_id, device_ip):
+    try:
+        url = f'http://{device_ip}:{PORT}/mic/recordings'
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            return response.json()
+        else:
+            logger.error(f"Failed to get mic recordings for device {device_id}: {response.status_code}")
+            return None
+    except requests.exceptions.ConnectTimeout:
+        logger.error(f"Get mic recordings timed out for device {device_id}")
+        return None
+    except Exception as e:
+        logger.error(f"Failed to get mic recordings for device {device_id}: {e}")
+        return None

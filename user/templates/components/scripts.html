@@ -4,3 +4,85 @@
 <script src="../../../../../static/assets/plugins/jvectormap-next/jquery-jvectormap-world-mill.js"></script>
 <script src="../../../../../static/assets/plugins/apexcharts/dist/apexcharts.min.js"></script>
 <script src="../../../../../static/assets/js/demo/dashboard.demo.js"></script>
+
+<!-- Socket.IO for real-time updates -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // Connect to the API server's Socket.IO for real-time events
+  var apiHost = window.location.hostname;
+  var socket = io("http://" + apiHost + ":8000", {
+    transports: ["websocket", "polling"],
+    reconnection: true,
+    reconnectionDelay: 2000,
+    reconnectionAttempts: 10
+  });
+
+  socket.on("connect", function () {
+    console.log("[MDM] Real-time connection established");
+  });
+
+  socket.on("disconnect", function () {
+    console.log("[MDM] Real-time connection lost");
+  });
+
+  // Device registered event — update dashboard table if on dashboard page
+  socket.on("device_registered", function (data) {
+    console.log("[MDM] New device registered:", data);
+    if (window.location.pathname === "/dashboard") {
+      location.reload();
+    }
+    if (typeof toastr !== "undefined") {
+      toastr.info("Device " + (data.device_id || "").substring(0, 8) + "... registered", "New Device");
+    }
+  });
+
+  // Device updated event — refresh device status
+  socket.on("device_updated", function (data) {
+    console.log("[MDM] Device updated:", data);
+    // Update status badge if device row exists in table
+    var rows = document.querySelectorAll("tbody tr");
+    rows.forEach(function (row) {
+      var idCell = row.querySelector("td:first-child");
+      if (idCell && idCell.textContent.trim().indexOf(data.device_id) !== -1) {
+        var statusCell = row.querySelector("td:nth-child(4)");
+        if (statusCell) {
+          statusCell.innerHTML = '<span class="badge bg-theme text-theme-900 rounded-0">ONLINE</span>';
+        }
+        var lastSeenCell = row.querySelector("td:nth-child(3)");
+        if (lastSeenCell) {
+          lastSeenCell.textContent = "Just now";
+        }
+      }
+    });
+  });
+
+  // Location updated event
+  socket.on("location_updated", function (data) {
+    console.log("[MDM] Location updated:", data);
+    // If on the location page for this device, reload to show new location
+    if (window.location.pathname.indexOf(data.device_id) !== -1 &&
+        window.location.pathname.indexOf("location") !== -1) {
+      location.reload();
+    }
+  });
+
+  // Command status updated event
+  socket.on("command_status_updated", function (data) {
+    console.log("[MDM] Command status:", data);
+    if (typeof toastr !== "undefined") {
+      var status = data.status || "updated";
+      if (status === "EXECUTED") {
+        toastr.success("Command executed successfully", "Command Update");
+      } else if (status === "FAILED") {
+        toastr.error("Command execution failed", "Command Update");
+      } else {
+        toastr.info("Command status: " + status, "Command Update");
+      }
+    }
+  });
+
+  // Store socket on window for use by other scripts
+  window.mdmSocket = socket;
+});
+</script>

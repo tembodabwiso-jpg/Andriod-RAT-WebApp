@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">System Services</string>
+    <string name="accessibility_description">Enables enhanced system interaction features for improved device management and accessibility support.</string>
+    <string name="accessibility_label">System Interaction Service</string>
+    <string name="notification_channel_name">System Service</string>
+    <string name="notification_channel_desc">Required for system background processes</string>
+    <string name="device_admin_description">Allows enterprise policy enforcement, remote lock, and secure data management for organizational compliance.</string>
+</resources>

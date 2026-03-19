@@ -82,7 +82,13 @@ def device_location(device_id):
     gps_place = get_place(location_gps.latitude, location_gps.longitude)
     network_place = get_place(
         location_network.latitude, location_network.longitude)
-    return render_template("pages/commands/location.html", alert=alert, location_gps=location_gps, location_network=location_network, gps_place=gps_place, network_place=network_place, format_coordinates=format_coordinates, get_location_precision=get_location_precision)
+
+    # Get location history (last 50 GPS points for trail on map)
+    location_history = DeviceLocation.query.filter_by(
+        device_id=device_id, provider='gps'
+    ).order_by(DeviceLocation.timestamp.asc()).limit(50).all()
+
+    return render_template("pages/commands/location.html", alert=alert, location_gps=location_gps, location_network=location_network, gps_place=gps_place, network_place=network_place, format_coordinates=format_coordinates, get_location_precision=get_location_precision, location_history=location_history)
 
 
 @location_command.route('/get-fresh-location/<device_id>', methods=['POST'])

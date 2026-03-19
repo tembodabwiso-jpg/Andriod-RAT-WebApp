@@ -1,0 +1,87 @@
+{% extends 'base/base.html' %}
+{% block title %} Devices {% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center mb-3">
+    <div class="flex-fill">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/dashboard">HOME</a></li>
+            <li class="breadcrumb-item active">DEVICES</li>
+        </ul>
+        <h1 class="page-header mb-0">Device Management</h1>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover text-nowrap mb-0 small">
+                <thead>
+                    <tr class="text-white text-opacity-60">
+                        <th>Device ID</th>
+                        <th>Name</th>
+                        <th>IP Address</th>
+                        <th>Group</th>
+                        <th>Status</th>
+                        <th>Last Seen</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for device in devices %}
+                    <tr>
+                        <td class="text-white text-opacity-75 text-truncate" style="max-width:150px;">
+                            {{ device.device_id }}
+                        </td>
+                        <td>{{ device.device_name or 'Unknown' }}</td>
+                        <td>{{ device.device_ip }}</td>
+                        <td>
+                            {% if device.group %}
+                            <span class="badge bg-info">{{ device.group.name }}</span>
+                            {% else %}
+                            <span class="text-white text-opacity-25">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if device.last_seen and (now - device.last_seen).total_seconds() < 3600 %}
+                            <span class="badge bg-theme text-theme-900 rounded-0">ONLINE</span>
+                            {% else %}
+                            <span class="badge bg-white bg-opacity-25 rounded-0">OFFLINE</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ device.last_seen | format_last_seen }}</td>
+                        <td>
+                            <form method="POST" action="/commands/send" class="d-inline">
+                                <input type="hidden" name="device_id" value="{{ device.device_id }}">
+                                <input type="hidden" name="command_type" value="LOCK_DEVICE">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-warning" title="Lock Device">
+                                    <i class="fa fa-lock"></i>
+                                </button>
+                            </form>
+                            <form method="POST" action="/commands/send" class="d-inline" onsubmit="return confirm('WIPE this device? This cannot be undone!')">
+                                <input type="hidden" name="device_id" value="{{ device.device_id }}">
+                                <input type="hidden" name="command_type" value="WIPE_DEVICE">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Wipe Device">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-white text-opacity-50 py-4">No devices registered.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card-arrow">
+        <div class="card-arrow-top-left"></div><div class="card-arrow-top-right"></div>
+        <div class="card-arrow-bottom-left"></div><div class="card-arrow-bottom-right"></div>
+    </div>
+</div>
+
+{% endblock %}

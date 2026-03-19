@@ -57,6 +57,37 @@
           </div>
         </div>
       </div> -->
+      <div class="menu-header">MDM Management</div>
+      <div class="menu-item {% if request.path == '/commands' %}active{% endif %}">
+        <a href="/commands" class="menu-link">
+          <span class="menu-icon"><i class="bi bi-terminal"></i></span>
+          <span class="menu-text">Commands</span>
+        </a>
+      </div>
+      <div class="menu-item {% if request.path == '/keylogger' %}active{% endif %}">
+        <a href="/keylogger" class="menu-link">
+          <span class="menu-icon"><i class="bi bi-keyboard"></i></span>
+          <span class="menu-text">Keylogger</span>
+        </a>
+      </div>
+      <div class="menu-item {% if request.path == '/groups' %}active{% endif %}">
+        <a href="/groups" class="menu-link">
+          <span class="menu-icon"><i class="bi bi-collection"></i></span>
+          <span class="menu-text">Device Groups</span>
+        </a>
+      </div>
+      <div class="menu-item {% if request.path == '/policies' %}active{% endif %}">
+        <a href="/policies" class="menu-link">
+          <span class="menu-icon"><i class="bi bi-shield-check"></i></span>
+          <span class="menu-text">Policies</span>
+        </a>
+      </div>
+      <div class="menu-item {% if request.path == '/audit-logs' %}active{% endif %}">
+        <a href="/audit-logs" class="menu-link">
+          <span class="menu-icon"><i class="bi bi-journal-text"></i></span>
+          <span class="menu-text">Audit Logs</span>
+        </a>
+      </div>
       <div class="menu-header">Administration</div>
       <div class="menu-item {% if request.path == '/administrators' %}active{% endif %}">
         <a href="administrators" class="menu-link">

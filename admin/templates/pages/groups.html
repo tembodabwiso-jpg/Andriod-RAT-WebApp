@@ -1,0 +1,106 @@
+{% extends 'base/base.html' %}
+{% block title %} Device Groups {% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center mb-3">
+    <div class="flex-fill">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/dashboard">HOME</a></li>
+            <li class="breadcrumb-item active">DEVICE GROUPS</li>
+        </ul>
+        <h1 class="page-header mb-0">Device Groups</h1>
+    </div>
+    <button class="btn btn-outline-theme" data-bs-toggle="modal" data-bs-target="#createGroupModal">
+        <i class="fa fa-plus me-1"></i> New Group
+    </button>
+</div>
+
+<div class="row">
+    {% for group in groups %}
+    <div class="col-xl-4 col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <div class="d-flex fw-bold small mb-3">
+                    <span class="flex-grow-1">{{ group.name | upper }}</span>
+                    <form method="POST" action="/groups/{{ group.id }}/delete" onsubmit="return confirm('Delete this group?')">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="btn btn-sm btn-outline-danger p-0 px-1"><i class="fa fa-trash"></i></button>
+                    </form>
+                </div>
+                <p class="text-white text-opacity-50 small mb-2">{{ group.description or 'No description' }}</p>
+                <h3 class="mb-1">{{ group.devices | length }}</h3>
+                <div class="small text-white text-opacity-50">devices assigned</div>
+
+                {% if group.devices %}
+                <div class="mt-3">
+                    {% for device in group.devices %}
+                    <span class="badge bg-white bg-opacity-15 mb-1">{{ device.device_name or device.device_id[:10] }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Assign device form -->
+                <form method="POST" action="/groups/{{ group.id }}/assign" class="mt-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="input-group input-group-sm">
+                        <select name="device_id" class="form-select form-select-sm">
+                            <option value="">Assign device...</option>
+                            {% for d in unassigned_devices %}
+                            <option value="{{ d.device_id }}">{{ d.device_name or d.device_id[:16] }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-outline-theme btn-sm">Add</button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-arrow">
+                <div class="card-arrow-top-left"></div><div class="card-arrow-top-right"></div>
+                <div class="card-arrow-bottom-left"></div><div class="card-arrow-bottom-right"></div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center text-white text-opacity-50 py-5">
+                No device groups created yet. Click "New Group" to create one.
+            </div>
+            <div class="card-arrow">
+                <div class="card-arrow-top-left"></div><div class="card-arrow-top-right"></div>
+                <div class="card-arrow-bottom-left"></div><div class="card-arrow-bottom-right"></div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Create Group Modal -->
+<div class="modal fade" id="createGroupModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark">
+            <form method="POST" action="/groups/create">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Create Device Group</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Group Name</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Field Devices" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="2" placeholder="Optional description"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-theme">Create Group</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

