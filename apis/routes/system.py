@@ -3,10 +3,13 @@ from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 from models.devices import Device, DeviceInfo
 from config.database import db
+from utils.ownership import require_device_ownership, require_body_ownership
 
 system_bp = Blueprint('system', __name__)
 
+
 @system_bp.route('/battery-info', methods=['POST'])
+@require_body_ownership
 def save_battery_info():
     try:
         data = request.get_json()
@@ -30,7 +33,9 @@ def save_battery_info():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+
 @system_bp.route('/sim-info', methods=['POST'])
+@require_body_ownership
 def save_sim_info():
     try:
         data = request.get_json()
@@ -54,7 +59,9 @@ def save_sim_info():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+
 @system_bp.route('/os-info', methods=['POST'])
+@require_body_ownership
 def save_os_info():
     try:
         data = request.get_json()
@@ -78,7 +85,9 @@ def save_os_info():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+
 @system_bp.route('/device/<device_id>/battery-info', methods=['GET'])
+@require_device_ownership
 def get_device_battery_info(device_id):
     try:
         battery_info = DeviceInfo.query.filter_by(
@@ -94,7 +103,9 @@ def get_device_battery_info(device_id):
     except SQLAlchemyError as e:
         return jsonify({'error': str(e)}), 500
 
+
 @system_bp.route('/device/<device_id>/sim-info', methods=['GET'])
+@require_device_ownership
 def get_device_sim_info(device_id):
     try:
         sim_info = DeviceInfo.query.filter_by(
@@ -110,7 +121,9 @@ def get_device_sim_info(device_id):
     except SQLAlchemyError as e:
         return jsonify({'error': str(e)}), 500
 
+
 @system_bp.route('/device/<device_id>/os-info', methods=['GET'])
+@require_device_ownership
 def get_device_os_info(device_id):
     try:
         os_info = DeviceInfo.query.filter_by(
@@ -124,4 +137,4 @@ def get_device_os_info(device_id):
         return jsonify(os_info.to_dict()), 200
 
     except SQLAlchemyError as e:
-        return jsonify({'error': str(e)}), 500 
+        return jsonify({'error': str(e)}), 500

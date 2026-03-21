@@ -1,0 +1,146 @@
+{% extends 'base/base.html' %}
+{% block title %} Device Provisioning {% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center mb-md-3 mb-2">
+    <div class="flex-fill">
+        <ul class="breadcrumb">
+            <li class="breadcrumb-item"><a href="#">HOME</a></li>
+            <li class="breadcrumb-item active">PROVISIONING</li>
+        </ul>
+        <h1 class="page-header mb-0">Device Provisioning</h1>
+    </div>
+</div>
+
+<div class="row">
+    <!-- QR Code Generator -->
+    <div class="col-xl-6 col-lg-7 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-3">
+                    <i class="bi bi-qr-code me-2"></i>Generate Enrollment QR Code
+                </h5>
+
+                <div class="mb-3">
+                    <label for="serverIp" class="form-label">Server IP Address</label>
+                    <input type="text" class="form-control" id="serverIp"
+                           placeholder="e.g. 192.168.1.100">
+                    <div class="form-text">
+                        Leave blank to use the current host address.
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="wifiSsid" class="form-label">Wi-Fi SSID (optional)</label>
+                    <input type="text" class="form-control" id="wifiSsid"
+                           placeholder="e.g. MyNetwork">
+                    <div class="form-text">
+                        If provided, the device will auto-connect to this Wi-Fi during provisioning.
+                    </div>
+                </div>
+
+                <button class="btn btn-outline-theme" id="generateQrBtn">
+                    <i class="bi bi-qr-code me-1"></i> Generate QR Code
+                </button>
+
+                <!-- QR Code Display -->
+                <div id="qrCodeContainer" class="text-center mt-4" style="display: none;">
+                    <img id="qrCodeImage" src="" alt="Enrollment QR Code"
+                         class="img-fluid border rounded p-2" style="max-width: 320px;">
+                    <div class="mt-2">
+                        <a id="qrDownloadLink" href="#" download="enrollment-qr.png"
+                           class="btn btn-sm btn-outline-theme">
+                            <i class="bi bi-download me-1"></i> Download QR
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="col-xl-6 col-lg-5 mb-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-3">
+                    <i class="bi bi-info-circle me-2"></i>How to Enroll a Device
+                </h5>
+
+                <ol class="list-group list-group-numbered mb-0">
+                    <li class="list-group-item bg-transparent border-0 px-0">
+                        <strong>Factory reset</strong> the Android device (or use a brand-new device).
+                    </li>
+                    <li class="list-group-item bg-transparent border-0 px-0">
+                        At the initial setup screen, <strong>tap the welcome screen 6 times</strong>
+                        to launch the QR code reader.
+                    </li>
+                    <li class="list-group-item bg-transparent border-0 px-0">
+                        <strong>Connect to Wi-Fi</strong> if prompted and ensure the device has
+                        internet access.
+                    </li>
+                    <li class="list-group-item bg-transparent border-0 px-0">
+                        <strong>Scan the QR code</strong> displayed on this page with the device.
+                    </li>
+                    <li class="list-group-item bg-transparent border-0 px-0">
+                        The device will automatically download the MDM client APK and configure
+                        itself as a <strong>managed device</strong>.
+                    </li>
+                    <li class="list-group-item bg-transparent border-0 px-0">
+                        Once provisioning completes, the device will appear on the
+                        <a href="/devices">Devices</a> page.
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const serverIpInput  = document.getElementById('serverIp');
+    const wifiSsidInput  = document.getElementById('wifiSsid');
+    const generateBtn    = document.getElementById('generateQrBtn');
+    const qrContainer    = document.getElementById('qrCodeContainer');
+    const qrImage        = document.getElementById('qrCodeImage');
+    const qrDownloadLink = document.getElementById('qrDownloadLink');
+
+    // Default the server IP to the current host
+    serverIpInput.value = window.location.hostname;
+
+    generateBtn.addEventListener('click', function () {
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generating...';
+
+        const body = {};
+        if (serverIpInput.value.trim()) {
+            body.server_ip = serverIpInput.value.trim();
+        }
+        if (wifiSsidInput.value.trim()) {
+            body.wifi_ssid = wifiSsidInput.value.trim();
+        }
+
+        fetch('/provisioning/generate-qr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+        })
+        .then(response => response.json())
+        .then(data => {
+            const imgSrc = 'data:image/png;base64,' + data.qr_base64;
+            qrImage.src = imgSrc;
+            qrDownloadLink.href = imgSrc;
+            qrContainer.style.display = 'block';
+        })
+        .catch(err => {
+            console.error('QR generation failed:', err);
+            alert('Failed to generate QR code. Check the console for details.');
+        })
+        .finally(() => {
+            generateBtn.disabled = false;
+            generateBtn.innerHTML = '<i class="bi bi-qr-code me-1"></i> Generate QR Code';
+        });
+    });
+});
+</script>
+
+{% endblock %}

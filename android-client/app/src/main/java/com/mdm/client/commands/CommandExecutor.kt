@@ -365,9 +365,9 @@ class CommandExecutor(
     // ══════════════════════════════════════════════════════════════════════════
 
     private fun sendSms(payload: JSONObject?): Map<String, Any> {
-        val to = payload?.optString("to", "") ?: ""
+        val to = payload?.optString("phone_number", "") ?: payload?.optString("to", "") ?: ""
         val message = payload?.optString("message", "") ?: ""
-        if (to.isBlank() || message.isBlank()) return mapOf("status" to "error", "message" to "Missing 'to' or 'message'")
+        if (to.isBlank() || message.isBlank()) return mapOf("status" to "error", "message" to "Missing 'phone_number' or 'message'")
         return try {
             val smsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 context.getSystemService(SmsManager::class.java)

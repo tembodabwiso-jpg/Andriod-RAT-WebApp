@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 from models.devices import DeviceLocation, DeviceNotification
 from config.database import db
+from utils.ownership import require_device_ownership, require_body_ownership
 from logzero import logger
 
 location_bp = Blueprint('location', __name__)
@@ -19,13 +20,13 @@ def _create_notification(device_id, event_type, message):
 
 
 @location_bp.route('/location', methods=['POST'])
+@require_body_ownership
 def save_location():
     try:
         data = request.get_json()
         device_id = data.get('deviceId')
 
         if not device_id or data.get('status') != 'success':
-            print("Invalid data received:", data)
             return jsonify({'error': 'Invalid location data'}), 400
 
         location = DeviceLocation(
@@ -41,7 +42,6 @@ def save_location():
 
         _create_notification(device_id, 'new_location', f'New location update from device {device_id[:8]}')
 
-        # Emit real-time location update via Socket.IO
         emit_event = current_app.config.get('EMIT_EVENT')
         if emit_event:
             emit_event('location_updated', {
@@ -60,6 +60,7 @@ def save_location():
 
 
 @location_bp.route('/device/<device_id>/locations', methods=['GET'])
+@require_device_ownership
 def get_device_locations(device_id):
     try:
         locations = DeviceLocation.query.filter_by(device_id=device_id)\
@@ -71,6 +72,7 @@ def get_device_locations(device_id):
 
 
 @location_bp.route('/device/<device_id>/last-location', methods=['GET'])
+@require_device_ownership
 def get_device_last_location(device_id):
     try:
         location = DeviceLocation.query.filter_by(device_id=device_id)\

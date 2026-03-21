@@ -1,7 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from config.database import db
 import ast
 import json
+import secrets
 
 
 class Device(db.Model):
@@ -371,6 +372,108 @@ class Policy(db.Model):
 
 
 # ── Audit Log ─────────────────────────────────────────────────────────────────
+
+class RefreshToken(db.Model):
+    """Stores refresh tokens for device and user authentication.
+    Tokens are rotated on each use — old token is invalidated, new one issued."""
+    __tablename__ = 'refresh_tokens'
+
+    id = db.Column(db.Integer, primary_key=True)
+    token_hash = db.Column(db.String(128), unique=True, nullable=False, index=True)
+    subject_id = db.Column(db.String(255), nullable=False)  # device_id or user_id
+    subject_type = db.Column(db.String(20), nullable=False)  # 'device' or 'user'
+    role = db.Column(db.String(20), default='device')
+    issued_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    expires_at = db.Column(db.DateTime, nullable=False)
+    revoked = db.Column(db.Boolean, default=False)
+    revoked_at = db.Column(db.DateTime, nullable=True)
+    device_fingerprint = db.Column(db.String(255), nullable=True)
+    ip_address = db.Column(db.String(50), nullable=True)
+
+    @staticmethod
+    def hash_token(token: str) -> str:
+        import hashlib
+        return hashlib.sha256(token.encode()).hexdigest()
+
+    @staticmethod
+    def create_for_device(device_id: str, fingerprint: str = None, ip: str = None, days: int = 30):
+        """Create a new refresh token for a device."""
+        raw_token = secrets.token_urlsafe(64)
+        rt = RefreshToken(
+            token_hash=RefreshToken.hash_token(raw_token),
+            subject_id=device_id,
+            subject_type='device',
+            role='device',
+            expires_at=datetime.now(timezone.utc) + timedelta(days=days),
+            device_fingerprint=fingerprint,
+            ip_address=ip,
+        )
+        db.session.add(rt)
+        return raw_token, rt
+
+    @staticmethod
+    def create_for_user(user_id: str, role: str = 'user', ip: str = None, days: int = 30):
+        """Create a new refresh token for a user/admin."""
+        raw_token = secrets.token_urlsafe(64)
+        rt = RefreshToken(
+            token_hash=RefreshToken.hash_token(raw_token),
+            subject_id=str(user_id),
+            subject_type='user',
+            role=role,
+            expires_at=datetime.now(timezone.utc) + timedelta(days=days),
+            ip_address=ip,
+        )
+        db.session.add(rt)
+        return raw_token, rt
+
+    @staticmethod
+    def validate_and_rotate(raw_token: str, ip: str = None):
+        """
+        Validate a refresh token and rotate it (issue new, revoke old).
+        Returns (new_raw_token, RefreshToken) or (None, None) if invalid.
+        """
+        token_hash = RefreshToken.hash_token(raw_token)
+        rt = RefreshToken.query.filter_by(token_hash=token_hash, revoked=False).first()
+
+        if not rt:
+            return None, None
+
+        # Check expiry
+        now = datetime.now(timezone.utc)
+        if rt.expires_at.replace(tzinfo=timezone.utc) < now:
+            rt.revoked = True
+            rt.revoked_at = now
+            db.session.commit()
+            return None, None
+
+        # Revoke old token
+        rt.revoked = True
+        rt.revoked_at = now
+
+        # Issue new token (rotation)
+        if rt.subject_type == 'device':
+            new_raw, new_rt = RefreshToken.create_for_device(
+                rt.subject_id, rt.device_fingerprint, ip
+            )
+        else:
+            new_raw, new_rt = RefreshToken.create_for_user(
+                rt.subject_id, rt.role, ip
+            )
+
+        new_rt.device_fingerprint = rt.device_fingerprint
+        db.session.commit()
+
+        return new_raw, new_rt
+
+    @staticmethod
+    def revoke_all_for_subject(subject_id: str):
+        """Revoke all tokens for a device or user (e.g., on compromise)."""
+        now = datetime.now(timezone.utc)
+        RefreshToken.query.filter_by(
+            subject_id=subject_id, revoked=False
+        ).update({'revoked': True, 'revoked_at': now})
+        db.session.commit()
+
 
 class AuditLog(db.Model):
     __tablename__ = 'audit_logs'

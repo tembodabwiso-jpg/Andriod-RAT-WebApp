@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from models.devices import Policy, DeviceGroup, Device
 from config.database import db
 from utils.audit import log_action
+from utils.jwt_auth import require_auth, require_admin
 from logzero import logger
 import json
 
@@ -16,6 +17,7 @@ policies_bp = Blueprint('policies', __name__)
 # ── Device Groups ─────────────────────────────────────────────────────────────
 
 @policies_bp.route('/groups', methods=['GET'])
+@require_auth
 def get_groups():
     try:
         groups = DeviceGroup.query.all()
@@ -25,6 +27,7 @@ def get_groups():
 
 
 @policies_bp.route('/groups', methods=['POST'])
+@require_admin
 def create_group():
     try:
         data = request.get_json()
@@ -48,6 +51,7 @@ def create_group():
 
 
 @policies_bp.route('/groups/<int:group_id>', methods=['PUT'])
+@require_admin
 def update_group(group_id):
     try:
         data = request.get_json()
@@ -69,6 +73,7 @@ def update_group(group_id):
 
 
 @policies_bp.route('/groups/<int:group_id>', methods=['DELETE'])
+@require_admin
 def delete_group(group_id):
     try:
         group = DeviceGroup.query.get(group_id)
@@ -86,6 +91,7 @@ def delete_group(group_id):
 
 
 @policies_bp.route('/groups/<int:group_id>/devices', methods=['POST'])
+@require_admin
 def add_device_to_group(group_id):
     try:
         data = request.get_json()
@@ -106,6 +112,7 @@ def add_device_to_group(group_id):
 # ── Policies ──────────────────────────────────────────────────────────────────
 
 @policies_bp.route('/policies', methods=['GET'])
+@require_auth
 def get_policies():
     try:
         policies = Policy.query.all()
@@ -115,6 +122,7 @@ def get_policies():
 
 
 @policies_bp.route('/policies', methods=['POST'])
+@require_admin
 def create_policy():
     try:
         data = request.get_json()
@@ -141,6 +149,7 @@ def create_policy():
 
 
 @policies_bp.route('/policies/<int:policy_id>', methods=['GET'])
+@require_auth
 def get_policy(policy_id):
     try:
         policy = Policy.query.get(policy_id)
@@ -152,6 +161,7 @@ def get_policy(policy_id):
 
 
 @policies_bp.route('/policies/<int:policy_id>', methods=['PUT'])
+@require_admin
 def update_policy(policy_id):
     try:
         data = request.get_json()
@@ -180,6 +190,7 @@ def update_policy(policy_id):
 
 
 @policies_bp.route('/policies/<int:policy_id>', methods=['DELETE'])
+@require_admin
 def delete_policy(policy_id):
     try:
         policy = Policy.query.get(policy_id)
@@ -199,6 +210,7 @@ def delete_policy(policy_id):
 # ── Audit Logs ────────────────────────────────────────────────────────────────
 
 @policies_bp.route('/audit-logs', methods=['GET'])
+@require_admin
 def get_audit_logs():
     from models.devices import AuditLog
     try:

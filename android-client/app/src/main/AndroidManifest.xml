@@ -153,6 +153,14 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".provisioning.ProvisionedReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.app.action.PROVISIONING_SUCCESSFUL" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>

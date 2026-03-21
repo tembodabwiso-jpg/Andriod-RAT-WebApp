@@ -1,10 +1,25 @@
 package com.mdm.client.util
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
 import java.net.NetworkInterface
 
 object NetworkUtils {
+
+    /**
+     * Check if the device currently has internet connectivity.
+     * Uses ConnectivityManager with NetworkCapabilities (API 23+).
+     */
+    fun isOnline(ctx: Context): Boolean {
+        val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+            ?: return false
+        val network = cm.activeNetwork ?: return false
+        val caps = cm.getNetworkCapabilities(network) ?: return false
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+               caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+    }
 
     fun getLocalIpAddress(ctx: Context): String {
         // Try WifiManager first (most reliable on WiFi)

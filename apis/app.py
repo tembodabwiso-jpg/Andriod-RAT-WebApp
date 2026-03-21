@@ -18,9 +18,12 @@ from config.fcm import init_fcm
 from apis.routes import devices, location, keystrokes, apps, communication, system
 from apis.routes.commands import commands_bp
 from apis.routes.policies import policies_bp
-from utils.jwt_auth import create_token
+from apis.routes.provisioning import provisioning_bp
+from apis.routes.device_auth import device_auth_bp
+from utils.jwt_auth import create_token, create_access_token
 # Models
-from models.devices import *
+from models.devices import *  # noqa: F403
+from models.devices import RefreshToken
 from models.admins import Admin
 from models.users import User
 
@@ -41,7 +44,28 @@ CORS(app, supports_credentials=True)
 # API server uses JWT auth, not CSRF tokens — disable CSRF entirely
 app.config['SEASURF_INCLUDE_OR_EXEMPT_VIEWS'] = 'exempt'
 csrf = SeaSurf(app)
-limiter = Limiter(app)
+
+# ── Rate Limiting ────────────────────────────────────────────────────────
+# Token bucket strategy — allows short bursts but enforces sustained limits.
+# Key function extracts device_id from JWT or falls back to IP.
+def _rate_limit_key():
+    """Extract rate limit key: device_id from JWT token, or IP address."""
+    auth = request.headers.get('Authorization', '')
+    if auth.startswith('Bearer '):
+        try:
+            from utils.jwt_auth import decode_token
+            payload = decode_token(auth.split(' ', 1)[1])
+            return f"device:{payload.get('sub', request.remote_addr)}"
+        except Exception:
+            pass
+    return f"ip:{request.remote_addr}"
+
+limiter = Limiter(
+    app,
+    key_func=_rate_limit_key,
+    default_limits=["120 per hour", "30 per minute"],  # default for all endpoints
+    storage_uri="memory://",
+)
 
 # Initialize Socket.IO for real-time updates to dashboard
 socketio = SocketIO(app, cors_allowed_origins='*', async_mode='threading')
@@ -66,18 +90,30 @@ def api_login():
     from werkzeug.security import check_password_hash
     admin = Admin.query.filter_by(email=email).first()
     if admin and check_password_hash(admin.password, password):
-        token = create_token(admin.id, role='admin')
+        access_token = create_access_token(admin.id, role='admin', token_type='user')
+        refresh_raw, _ = RefreshToken.create_for_user(
+            admin.id, role='admin', ip=request.remote_addr
+        )
+        db.session.commit()
         return jsonify({
-            'token': token,
+            'token': access_token,
+            'access_token': access_token,
+            'refresh_token': refresh_raw,
             'user': {'id': admin.id, 'email': admin.email, 'name': admin.fullname, 'role': 'admin'}
         }), 200
 
     # Check regular user
     user = User.query.filter_by(email=email).first()
     if user and check_password_hash(user.password, password):
-        token = create_token(user.id, role='user')
+        access_token = create_access_token(user.id, role='user', token_type='user')
+        refresh_raw, _ = RefreshToken.create_for_user(
+            user.id, role='user', ip=request.remote_addr
+        )
+        db.session.commit()
         return jsonify({
-            'token': token,
+            'token': access_token,
+            'access_token': access_token,
+            'refresh_token': refresh_raw,
             'user': {'id': user.id, 'email': user.email, 'name': user.fullname, 'role': 'user'}
         }), 200
 
@@ -127,6 +163,28 @@ app.register_blueprint(communication.communication_bp)
 app.register_blueprint(system.system_bp)
 app.register_blueprint(commands_bp)
 app.register_blueprint(policies_bp)
+app.register_blueprint(provisioning_bp)
+app.register_blueprint(device_auth_bp)
+
+# ── Per-Endpoint Rate Limits (sensitive operations) ──────────────────────────
+
+# Enrollment: 10 per day per IP (devices rarely register)
+limiter.limit("10 per day", key_func=lambda: f"ip:{request.remote_addr}")(
+    app.view_functions.get('device_auth.device_register')
+)
+# Token refresh: 30 per hour (one refresh per expired token)
+limiter.limit("30 per hour")(
+    app.view_functions.get('device_auth.device_refresh')
+)
+# Login: 10 per minute per IP (brute-force protection)
+limiter.limit("10 per minute", key_func=lambda: f"ip:{request.remote_addr}")(
+    app.view_functions.get('api_login')
+)
+# Dangerous commands (wipe, lock): 5 per day per device
+limiter.limit("5 per day")(
+    app.view_functions.get('commands.send_command')
+)
+
 
 if __name__ == "__main__":
     with app.app_context():

@@ -1,8 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Network Security Configuration.
+
+    For DEVELOPMENT: allows cleartext to all hosts (HTTP).
+    For PRODUCTION: uncomment the domain-config block below and
+    set your server domain with certificate pin hashes.
+
+    To get your server's SHA-256 pin:
+      openssl s_client -connect your-domain:443 | openssl x509 -pubkey -noout | \
+      openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64
+-->
 <network-security-config>
+
+    <!-- DEVELOPMENT: allow cleartext for local network testing -->
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
     </base-config>
+
+    <!--
+    PRODUCTION: Uncomment this block, replace with your domain and pin hashes.
+    This restricts ALL network traffic to your server only.
+
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">your-mdm-server.com</domain>
+        <pin-set expiration="2027-01-01">
+            <pin digest="SHA-256">YOUR_PRIMARY_PIN_BASE64=</pin>
+            <pin digest="SHA-256">YOUR_BACKUP_PIN_BASE64=</pin>
+        </pin-set>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+    -->
+
 </network-security-config>

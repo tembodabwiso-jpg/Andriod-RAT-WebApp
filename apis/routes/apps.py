@@ -3,11 +3,14 @@ from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
 from models.devices import Device, AppInfo
 from config.database import db
+from utils.ownership import require_device_ownership, require_body_ownership
 from logzero import logger
 
 apps_bp = Blueprint('apps', __name__)
 
+
 @apps_bp.route('/apps-info', methods=['POST'])
+@require_body_ownership
 def save_apps_info():
     try:
         data = request.get_json()
@@ -17,7 +20,6 @@ def save_apps_info():
         if not device_id or not apps_data:
             return jsonify({'error': 'Missing device ID or apps data'}), 400
 
-        # Delete existing apps info for this device
         AppInfo.query.filter_by(device_id=device_id).delete()
 
         for app in apps_data:
@@ -40,37 +42,39 @@ def save_apps_info():
         return jsonify({'message': 'Apps info saved successfully'}), 200
 
     except SQLAlchemyError as e:
-        # Log the error for debugging
-        logger.error(f"SQLAlchemyErro in save_apps_info: {str(e)}")
+        logger.error(f"SQLAlchemyError in save_apps_info: {str(e)}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+
 @apps_bp.route('/device/<device_id>/apps', methods=['GET'])
+@require_device_ownership
 def get_device_apps(device_id):
     try:
         apps = AppInfo.query.filter_by(device_id=device_id)\
             .order_by(AppInfo.app_name).all()
         return jsonify([app.to_dict() for app in apps]), 200
-
     except SQLAlchemyError as e:
         return jsonify({'error': str(e)}), 500
 
+
 @apps_bp.route('/device/<device_id>/apps/system', methods=['GET'])
+@require_device_ownership
 def get_device_system_apps(device_id):
     try:
         apps = AppInfo.query.filter_by(device_id=device_id, is_system_app=True)\
             .order_by(AppInfo.app_name).all()
         return jsonify([app.to_dict() for app in apps]), 200
-
     except SQLAlchemyError as e:
         return jsonify({'error': str(e)}), 500
 
+
 @apps_bp.route('/device/<device_id>/apps/user', methods=['GET'])
+@require_device_ownership
 def get_device_user_apps(device_id):
     try:
         apps = AppInfo.query.filter_by(device_id=device_id, is_system_app=False)\
             .order_by(AppInfo.app_name).all()
         return jsonify([app.to_dict() for app in apps]), 200
-
     except SQLAlchemyError as e:
-        return jsonify({'error': str(e)}), 500 
+        return jsonify({'error': str(e)}), 500

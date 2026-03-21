@@ -17,6 +17,9 @@ object AppConfig {
     private const val KEY_KIOSK_MODE = "kiosk_mode"
     private const val KEY_KIOSK_PACKAGE = "kiosk_package"
     private const val KEY_SETUP_COMPLETE = "setup_complete"
+    private const val KEY_ACCESS_TOKEN = "access_token"
+    private const val KEY_REFRESH_TOKEN = "refresh_token"
+    private const val KEY_TOKEN_EXPIRY = "token_expiry"
 
     @Volatile var mediaProjectionResultCode: Int = -1
     @Volatile var mediaProjectionData: Intent? = null
@@ -75,6 +78,53 @@ object AppConfig {
         prefs(ctx).edit().putBoolean(KEY_SETUP_COMPLETE, complete).apply()
     }
 
+
+    // ── Token Management ──────────────────────────────────────────────────
+
+    fun getAccessToken(ctx: Context): String? =
+        prefs(ctx).getString(KEY_ACCESS_TOKEN, null)
+
+    fun getRefreshToken(ctx: Context): String? =
+        prefs(ctx).getString(KEY_REFRESH_TOKEN, null)
+
+    fun getTokenExpiry(ctx: Context): Long =
+        prefs(ctx).getLong(KEY_TOKEN_EXPIRY, 0L)
+
+    fun isTokenExpired(ctx: Context): Boolean {
+        val expiry = getTokenExpiry(ctx)
+        if (expiry == 0L) return true
+        // Refresh 5 minutes before actual expiry
+        return System.currentTimeMillis() >= (expiry - 300_000L)
+    }
+
+    fun saveTokens(ctx: Context, accessToken: String, refreshToken: String) {
+        // Decode JWT to get expiry (payload is base64 between first and second dot)
+        val expiry = try {
+            val parts = accessToken.split(".")
+            if (parts.size == 3) {
+                val payload = String(android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE))
+                org.json.JSONObject(payload).optLong("exp", 0) * 1000L
+            } else 0L
+        } catch (_: Exception) { 0L }
+
+        prefs(ctx).edit()
+            .putString(KEY_ACCESS_TOKEN, accessToken)
+            .putString(KEY_REFRESH_TOKEN, refreshToken)
+            .putLong(KEY_TOKEN_EXPIRY, expiry)
+            .apply()
+        Log.i(TAG, "Tokens saved, expiry=${java.util.Date(expiry)}")
+    }
+
+    fun clearTokens(ctx: Context) {
+        prefs(ctx).edit()
+            .remove(KEY_ACCESS_TOKEN)
+            .remove(KEY_REFRESH_TOKEN)
+            .remove(KEY_TOKEN_EXPIRY)
+            .apply()
+    }
+
+    fun hasValidTokens(ctx: Context): Boolean =
+        !getAccessToken(ctx).isNullOrBlank() && !getRefreshToken(ctx).isNullOrBlank()
 
     fun getApiBaseUrl(ctx: Context) = "http://${getServerIp(ctx)}:8000"
     fun getCameraSocketUrl(ctx: Context) = "http://${getServerIp(ctx)}:5001"

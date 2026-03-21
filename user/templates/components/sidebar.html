@@ -24,6 +24,12 @@
           <span class="menu-text">Download APK</span>
         </a>
       </div>
+      <div class="menu-item {% if request.path == '/provisioning' %}active{% endif %}">
+        <a href="provisioning" class="menu-link">
+          <span class="menu-icon"><i class="bi bi-qr-code"></i></span>
+          <span class="menu-text">Provisioning</span>
+        </a>
+      </div>
       <!-- <div class="menu-item has-sub">
         <a href="#" class="menu-link">
           <span class="menu-icon">

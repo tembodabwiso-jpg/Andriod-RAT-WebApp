@@ -9,7 +9,7 @@ from flask import Flask, render_template, session, redirect, url_for, request, j
 from dotenv import load_dotenv
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from datetime import timedelta
-from user.routes import auth, dashboard, devices, profile
+from user.routes import auth, dashboard, devices, profile, provisioning
 from user.routes.commands import location, call_details, contacts, device_info, messages, apps, file_manager, keylogger, stream_camera, stream_vnc, screenshot, microphone, command_center, policies
 from user.routes.notifications import notifications_bp
 import os
@@ -58,6 +58,7 @@ app.register_blueprint(auth.auth)
 app.register_blueprint(dashboard.dashboard)
 app.register_blueprint(devices.devices)
 app.register_blueprint(profile.profile)
+app.register_blueprint(provisioning.provisioning)
 
 # Command blueprints
 app.register_blueprint(location.location_command)

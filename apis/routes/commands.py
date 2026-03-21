@@ -10,6 +10,8 @@ from models.devices import Command, Device
 from config.database import db
 from utils.fcm_sender import send_command_to_device
 from utils.audit import log_action
+from utils.ownership import require_device_ownership, verify_device_access, verify_command_access
+from utils.jwt_auth import require_auth
 from logzero import logger
 import json
 import requests as http_requests
@@ -68,11 +70,18 @@ VALID_COMMANDS = [
 
 
 @commands_bp.route('/commands/send', methods=['POST'])
+@require_auth
 def send_command():
-    """Create and send a command to a device."""
+    """Create and send a command to a device. Requires ownership of target device."""
     try:
         data = request.get_json()
         device_id = data.get('device_id') or data.get('deviceId')
+
+        # IDOR check: verify caller owns the target device
+        if device_id:
+            check = verify_device_access(device_id)
+            if check:
+                return check
         command_type = data.get('command_type') or data.get('commandType')
         payload = data.get('payload', {})
 
@@ -185,6 +194,7 @@ def deliver_command(device: Device, command: Command) -> bool:
 
 
 @commands_bp.route('/commands/<device_id>', methods=['GET'])
+@require_device_ownership
 def get_device_commands(device_id):
     """Get all commands for a device, ordered by newest first."""
     try:
@@ -199,6 +209,7 @@ def get_device_commands(device_id):
 
 
 @commands_bp.route('/commands/<int:command_id>/status', methods=['PUT', 'POST'])
+@require_auth
 def update_command_status(command_id):
     """Update command execution status (called by Android device after executing)."""
     try:
@@ -208,6 +219,11 @@ def update_command_status(command_id):
 
         if not new_status:
             return jsonify({'error': 'Missing status'}), 400
+
+        # IDOR check: verify caller owns the command's target device
+        check = verify_command_access(command_id)
+        if check:
+            return check
 
         command = Command.query.get(command_id)
         if not command:
@@ -241,6 +257,7 @@ def update_command_status(command_id):
 
 
 @commands_bp.route('/commands/pending/<device_id>', methods=['GET'])
+@require_device_ownership
 def get_pending_commands(device_id):
     """Get all pending commands for a device (polled by the Android device)."""
     try:
